@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:basera/core/resources/app_colors.dart';
 import 'package:basera/core/routes_manger/routes.dart';
 import 'package:basera/core/widgets/custom_button.dart';
@@ -21,11 +22,14 @@ class ChildDashboard extends StatefulWidget {
 
 class _ChildDashboardState extends State<ChildDashboard> {
   final _urlController = TextEditingController();
+  int _xp = 0;
+  int _streak = 0;
 
   @override
   void initState() {
     super.initState();
     context.read<ChildBloc>().add(LoadChildHistory());
+    _loadGamification();
   }
 
   @override
@@ -34,34 +38,143 @@ class _ChildDashboardState extends State<ChildDashboard> {
     super.dispose();
   }
 
+  Future<void> _loadGamification() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _xp = prefs.getInt('child_xp') ?? 0;
+        _streak = prefs.getInt('child_streak') ?? 0;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _updateGamification(bool isHarmful) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final oldLevel = _xp ~/ 50 + 1;
+      
+      if (isHarmful) {
+        _streak = 0;
+      } else {
+        _streak += 1;
+        _xp += 10;
+      }
+      
+      await prefs.setInt('child_xp', _xp);
+      await prefs.setInt('child_streak', _streak);
+      setState(() {});
+
+      final newLevel = _xp ~/ 50 + 1;
+      if (newLevel > oldLevel) {
+        _showLevelUpDialog(newLevel);
+      }
+    } catch (_) {}
+  }
+
+  void _showLevelUpDialog(int level) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        title: Center(
+          child: Text(
+            '🎉 LEVEL UP! 🎉',
+            style: GoogleFonts.outfit(
+              fontWeight: FontWeight.bold,
+              fontSize: 22.sp,
+              color: const Color(0xFF6366F1),
+            ),
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '🛡️ Safety Rank Level Up 🛡️',
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.bold,
+                fontSize: 16.sp,
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              'Congratulations! You reached Level $level Web Explorer! Keep browsing safely to unlock more ranks!',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.outfit(
+                fontSize: 13.sp,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          Center(
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Awesome!',
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15.sp,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _addCustomUrl() {
     final url = _urlController.text.trim();
     if (url.isEmpty) return;
 
-    // Basic URL validation helper
     String validatedUrl = url;
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
       validatedUrl = 'https://$url';
     }
 
+    final isHarmful = validatedUrl.contains('gambling') ||
+        validatedUrl.contains('slots') ||
+        validatedUrl.contains('badsite') ||
+        validatedUrl.contains('violent') ||
+        validatedUrl.contains('gory');
+
     context.read<ChildBloc>().add(VisitUrl(url: validatedUrl));
     _urlController.clear();
+    _updateGamification(isHarmful);
   }
 
   void _addQuickUrl(String url, String name) {
+    final isHarmful = url.contains('gambling') ||
+        url.contains('slots') ||
+        url.contains('badsite') ||
+        url.contains('violent') ||
+        url.contains('gory');
+
     context.read<ChildBloc>().add(VisitUrl(url: url));
+    _updateGamification(isHarmful);
   }
 
   void _clearHistory() {
     context.read<ChildBloc>().add(ClearChildHistory());
+    setState(() {
+      _streak = 0;
+      _xp = 0;
+    });
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setInt('child_xp', 0);
+      prefs.setInt('child_streak', 0);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.backGround,
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
+        backgroundColor: isDark ? const Color(0xFF1E1E24) : AppColors.primary,
         elevation: 0,
         title: Text(
           '👦 Child Dashboard',
@@ -77,7 +190,6 @@ class _ChildDashboardState extends State<ChildDashboard> {
             tooltip: 'Switch to Parent Mode',
             onPressed: () async {
               final navigator = Navigator.of(context);
-              // Switch role locally and reload
               navigator.pushReplacementNamed(Routes.mainRoute);
             },
           ),
@@ -112,59 +224,94 @@ class _ChildDashboardState extends State<ChildDashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Welcome Section
+                // Gamification Status Card
                 Container(
                   padding: EdgeInsets.all(16.r),
+                  margin: EdgeInsets.only(bottom: 16.h),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
+                    ),
                     borderRadius: BorderRadius.circular(16.r),
-                    border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.02),
-                        blurRadius: 10,
+                        color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                        blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CircleAvatar(
-                        radius: 28.r,
-                        backgroundColor: AppColors.lightBlue,
-                        child: Text(
-                          '👦',
-                          style: TextStyle(fontSize: 28.sp),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Safety Rank: Level ${_xp ~/ 50 + 1}',
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18.sp,
+                                ),
+                              ),
+                              Text(
+                                _xp ~/ 50 + 1 >= 3 ? 'Web Champion 🛡️' : 'Web Cadet 👶',
+                                style: GoogleFonts.outfit(
+                                  color: Colors.white70,
+                                  fontSize: 12.sp,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            child: Text(
+                              '🔥 $_streak Streak',
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12.sp,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12.h),
+                      // XP Progress Bar
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10.r),
+                        child: LinearProgressIndicator(
+                          value: (_xp % 50) / 50.0,
+                          backgroundColor: Colors.white24,
+                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                          minHeight: 8.h,
                         ),
                       ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Child Simulator Mode',
-                              style: GoogleFonts.outfit(
-                                fontSize: 18.sp,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.selectedText,
-                              ),
-                            ),
-                            SizedBox(height: 4.h),
-                            Text(
-                              'Visit simulated links to generate safe/unsafe activity streams.',
-                              style: GoogleFonts.outfit(
-                                fontSize: 12.sp,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
+                      SizedBox(height: 6.h),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${_xp % 50}/50 XP',
+                            style: GoogleFonts.outfit(color: Colors.white70, fontSize: 11.sp),
+                          ),
+                          Text(
+                            '+10 XP for safe browsing',
+                            style: GoogleFonts.outfit(color: Colors.white70, fontSize: 11.sp),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
-                SizedBox(height: 24.h),
 
                 // Simulated URL search bar
                 Text(
@@ -172,7 +319,7 @@ class _ChildDashboardState extends State<ChildDashboard> {
                   style: GoogleFonts.outfit(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.selectedText,
+                    color: isDark ? Colors.white70 : AppColors.selectedText,
                   ),
                 ),
                 SizedBox(height: 12.h),
@@ -182,8 +329,8 @@ class _ChildDashboardState extends State<ChildDashboard> {
                       child: BuildTextField(
                         controller: _urlController,
                         hint: 'Enter domain (e.g. google.com)',
-                        backgroundColor: AppColors.surface,
-                        borderBackgroundColor: AppColors.border,
+                        backgroundColor: isDark ? const Color(0xFF1E1E24) : AppColors.surface,
+                        borderBackgroundColor: isDark ? const Color(0xFF2D2D35) : AppColors.border,
                       ),
                     ),
                     SizedBox(width: 12.w),
@@ -193,7 +340,7 @@ class _ChildDashboardState extends State<ChildDashboard> {
                       onPressed: isLoading ? null : _addCustomUrl,
                       height: 52.h,
                       width: 70.w,
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: const Color(0xFF6366F1),
                       textColor: Colors.white,
                       borderRadius: 12.r,
                     ),
@@ -207,7 +354,7 @@ class _ChildDashboardState extends State<ChildDashboard> {
                   style: GoogleFonts.outfit(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
+                    color: isDark ? Colors.white54 : AppColors.textSecondary,
                   ),
                 ),
                 SizedBox(height: 10.h),
@@ -218,25 +365,25 @@ class _ChildDashboardState extends State<ChildDashboard> {
                     _buildQuickPreset(
                       'Wikipedia',
                       'https://en.wikipedia.org/wiki/Flutter_(software)',
-                      AppColors.greenWhite,
+                      Colors.green.shade50,
                       Colors.green.shade700,
                     ),
                     _buildQuickPreset(
                       'Duolingo',
                       'https://www.duolingo.com',
-                      AppColors.greenWhite,
+                      Colors.green.shade50,
                       Colors.green.shade700,
                     ),
                     _buildQuickPreset(
                       'Khan Academy',
                       'https://www.khanacademy.org',
-                      AppColors.greenWhite,
+                      Colors.green.shade50,
                       Colors.green.shade700,
                     ),
                     _buildQuickPreset(
                       'Scratch MIT',
                       'https://www.scratch.mit.edu',
-                      AppColors.greenWhite,
+                      Colors.green.shade50,
                       Colors.green.shade700,
                     ),
                     _buildQuickPreset(
@@ -264,7 +411,7 @@ class _ChildDashboardState extends State<ChildDashboard> {
                       style: GoogleFonts.outfit(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.selectedText,
+                        color: isDark ? Colors.white70 : AppColors.selectedText,
                       ),
                     ),
                     if (visitedUrls.isNotEmpty)
@@ -315,17 +462,19 @@ class _ChildDashboardState extends State<ChildDashboard> {
                           itemBuilder: (context, index) {
                             final url = visitedUrls[index];
                             final isHarmfulDemo = url.contains('gambling') ||
-                                url.contains('violent') ||
+                                url.contains('slots') ||
                                 url.contains('badsite') ||
-                                url.contains('slots');
+                                url.contains('violent');
                             return Card(
-                              color: AppColors.surface,
+                              color: isDark ? const Color(0xFF1E1E24) : AppColors.surface,
                               elevation: 0,
                               margin: EdgeInsets.symmetric(vertical: 6.h),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12.r),
                                 side: BorderSide(
-                                  color: AppColors.border.withValues(alpha: 0.3),
+                                  color: isDark 
+                                      ? const Color(0xFF2D2D35) 
+                                      : AppColors.border.withValues(alpha: 0.3),
                                 ),
                               ),
                               child: ListTile(
@@ -339,7 +488,7 @@ class _ChildDashboardState extends State<ChildDashboard> {
                                         : Icons.link_rounded,
                                     color: isHarmfulDemo
                                         ? AppColors.error
-                                        : AppColors.primary,
+                                        : const Color(0xFF6366F1),
                                   ),
                                 ),
                                 title: Text(

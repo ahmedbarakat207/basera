@@ -14,6 +14,7 @@ import 'package:basera/features/child/presentation/bloc/child_bloc.dart';
 import 'package:basera/features/parent/presentation/bloc/parent_bloc.dart';
 import 'package:basera/features/auth/presentation/pages/sign_up_screen.dart';
 import 'package:basera/features/dashboard_wrapper_screen.dart';
+import 'package:basera/core/resources/theme_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,15 +71,28 @@ class BasseraApp extends StatelessWidget {
         BlocProvider<ParentBloc>(
           create: (context) => ParentBloc(),
         ),
+        BlocProvider<ThemeCubit>(
+          create: (context) => ThemeCubit(),
+        ),
       ],
       child: ScreenUtilInit(
         designSize: const Size(430, 932),
         minTextAdapt: true,
         splitScreenMode: true,
-        builder: (context, child) => MaterialApp(
-          debugShowCheckedModeBanner: false,
-          home: isLoggedIn ? const DashboardWrapperScreen() : const SignUpScreen(),
-          onGenerateRoute: RouteGenerator.getRoute,
+        builder: (context, child) => BlocBuilder<ThemeCubit, bool>(
+          builder: (context, isDark) {
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: ThemeData(
+                brightness: isDark ? Brightness.dark : Brightness.light,
+                scaffoldBackgroundColor: isDark ? const Color(0xFF121214) : const Color(0xFFF8FAFC),
+                primaryColor: const Color(0xFF6366F1),
+                cardColor: isDark ? const Color(0xFF1E1E24) : Colors.white,
+              ),
+              home: isLoggedIn ? const DashboardWrapperScreen() : const SignUpScreen(),
+              onGenerateRoute: RouteGenerator.getRoute,
+            );
+          },
         ),
       ),
     );
