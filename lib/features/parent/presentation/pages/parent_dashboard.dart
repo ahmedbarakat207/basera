@@ -411,11 +411,11 @@ class _ParentDashboardState extends State<ParentDashboard> {
               ),
               // Theme toggle
               IconButton(
-                icon: Icon(
-                  true ? Icons.wb_sunny_rounded : Icons.nights_stay_rounded,
+                icon: const Icon(
+                  Icons.wb_sunny_rounded,
                   color: Colors.white,
                 ),
-                tooltip: true ? 'Light Mode' : 'Dark Mode',
+                tooltip: 'Light Mode',
                 onPressed: () => context.read<ThemeCubit>().toggleTheme(),
               ),
               // Switch to child mode
@@ -886,8 +886,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                   style: GoogleFonts.outfit(
                     fontSize: 12.sp,
                     fontStyle: FontStyle.italic,
-                    color:
-                        true ? Colors.white70 : ColorManager.white,
+                    color: Colors.white70,
                   ),
                 ),
               ),
