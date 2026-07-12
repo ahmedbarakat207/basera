@@ -44,7 +44,9 @@ class FirebaseBackendService {
       final cred = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
-      );
+      ).timeout(const Duration(seconds: 15), onTimeout: () {
+        throw Exception('Connection timed out. Please check your internet connection.');
+      });
       final user = cred.user;
       if (user != null) {
         final Map<String, dynamic> doc = {
@@ -61,7 +63,9 @@ class FirebaseBackendService {
         } else {
           doc['linked_children'] = []; // list of child UIDs
         }
-        await _db.collection('users').doc(user.uid).set(doc);
+        await _db.collection('users').doc(user.uid).set(doc).timeout(const Duration(seconds: 10), onTimeout: () {
+          throw Exception('Database operation timed out. Please check if Firestore is enabled in your Firebase console and security rules allow writes.');
+        });
       }
     } else {
       debugPrint('Local-only Mode: Account simulated for $name as $role');
@@ -76,10 +80,14 @@ class FirebaseBackendService {
       final cred = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
-      );
+      ).timeout(const Duration(seconds: 15), onTimeout: () {
+        throw Exception('Connection timed out. Please check your internet connection.');
+      });
       final user = cred.user;
       if (user != null) {
-        final doc = await _db.collection('users').doc(user.uid).get();
+        final doc = await _db.collection('users').doc(user.uid).get().timeout(const Duration(seconds: 10), onTimeout: () {
+          throw Exception('Database operation timed out. Please check if Firestore is enabled in your Firebase console.');
+        });
         if (doc.exists) {
           final role = doc.data()?['role'] as String? ?? 'parent';
           await ChildHistoryService.instance.setUserRole(role);
