@@ -216,7 +216,7 @@ class BaseraCategoryDonutChart extends StatelessWidget {
                                         '${e.key}: ${e.value}',
                                         style: GoogleFonts.outfit(
                                           fontSize: 12.sp,
-                                          color: isDark ? Colors.white70 : Colors.black80,
+                                          color: isDark ? Colors.white70 : Colors.black87,
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -234,7 +234,7 @@ class BaseraCategoryDonutChart extends StatelessWidget {
                     child: Text(
                       'No category data available',
                       style: GoogleFonts.outfit(
-                        color: AppColors.textDisabled,
+                        color: Colors.grey,
                         fontSize: 13.sp,
                       ),
                     ),
@@ -274,7 +274,6 @@ class _DonutChartPainter extends CustomPainter {
     if (total == 0) return;
 
     final double center = min(size.width, size.height) / 2;
-    final double outerRadius = center;
     final double innerRadius = center * 0.6;
     final Rect rect = Rect.fromLTWH(0, 0, center * 2, center * 2);
 

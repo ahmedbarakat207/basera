@@ -263,7 +263,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                                       style: GoogleFonts.outfit(
                                         fontWeight: FontWeight.w600,
                                         fontSize: 15.sp,
-                                        color: isDark ? Colors.white : Colors.black80,
+                                        color: isDark ? Colors.white : Colors.black87,
                                       ),
                                     ),
                                   );

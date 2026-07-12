@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:basera/core/services/firebase_backend_service.dart';
 import 'package:basera/core/services/basera_database.dart';
 import 'package:basera/core/utils/groq_client.dart';
-import 'package:basera/core/models/safety_report.dart';
 import 'parent_event.dart';
 import 'parent_state.dart';
 
@@ -27,7 +26,7 @@ class ParentBloc extends Bloc<ParentEvent, ParentState> {
   Future<void> _onLoadChildren(LoadChildrenProfiles event, Emitter<ParentState> emit) async {
     emit(ParentLoading());
     try {
-      final children = await _backendService.fetchChildrenProfiles();
+      final children = await _backendService.fetchChildren();
       
       if (children.isNotEmpty) {
         add(SelectChildProfile(childUid: children.first['uid'] ?? 'mock-child-id'));

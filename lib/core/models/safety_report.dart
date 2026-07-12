@@ -1,4 +1,3 @@
-import 'dart:convert';
 
 class UrlAnalysis {
   final String url;
