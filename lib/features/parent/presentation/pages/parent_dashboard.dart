@@ -364,9 +364,9 @@ class _ParentDashboardState extends State<ParentDashboard> {
         }).toList();
 
         return Scaffold(
+          backgroundColor: ColorManager.primary,
           appBar: AppBar(
-            backgroundColor:
-                ColorManager.primary,
+            backgroundColor: ColorManager.primary,
             elevation: 0,
             title: Text(
               '🛡️ Parent Control',
