@@ -53,7 +53,7 @@ class _LineChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final gridPaint = Paint()
-      ..color = ColorManager.white.withOpacity(0.05)
+      ..color = ColorManager.white.withValues(alpha: 0.05)
       ..strokeWidth = 1.0;
 
     final linePaint = Paint()

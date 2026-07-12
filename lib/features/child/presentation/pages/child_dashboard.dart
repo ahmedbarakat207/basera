@@ -223,7 +223,7 @@ class _ChildDashboardState extends State<ChildDashboard> {
                     borderRadius: BorderRadius.circular(AppSize.s16),
                     boxShadow: [
                       BoxShadow(
-                        color: ColorManager.white.withOpacity(0.1),
+                        color: ColorManager.white.withValues(alpha: 0.1),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -251,7 +251,7 @@ class _ChildDashboardState extends State<ChildDashboard> {
                           Container(
                             padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                             decoration: BoxDecoration(
-                              color: ColorManager.white.withOpacity(0.2),
+                              color: ColorManager.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(AppSize.s12),
                             ),
                             child: Text(
@@ -316,7 +316,6 @@ class _ChildDashboardState extends State<ChildDashboard> {
                       text: 'Go',
                       textStyle: StylesManager.mediumLine(),
                       onTap: isLoading ? () {} : _addCustomUrl,
-                      width: 70.w,
                     ),
                   ],
                 ),
@@ -335,37 +334,37 @@ class _ChildDashboardState extends State<ChildDashboard> {
                     _buildQuickPreset(
                       'Wikipedia',
                       'https://en.wikipedia.org/wiki/Flutter_(software)',
-                      ColorManager.grey.withOpacity(0.3),
+                      ColorManager.grey.withValues(alpha: 0.3),
                       ColorManager.white,
                     ),
                     _buildQuickPreset(
                       'Duolingo',
                       'https://www.duolingo.com',
-                      ColorManager.grey.withOpacity(0.3),
+                      ColorManager.grey.withValues(alpha: 0.3),
                       ColorManager.white,
                     ),
                     _buildQuickPreset(
                       'Khan Academy',
                       'https://www.khanacademy.org',
-                      ColorManager.grey.withOpacity(0.3),
+                      ColorManager.grey.withValues(alpha: 0.3),
                       ColorManager.white,
                     ),
                     _buildQuickPreset(
                       'Scratch MIT',
                       'https://www.scratch.mit.edu',
-                      ColorManager.grey.withOpacity(0.3),
+                      ColorManager.grey.withValues(alpha: 0.3),
                       ColorManager.white,
                     ),
                     _buildQuickPreset(
                       'Slots 🎰 (Unsafe)',
                       'https://www.freeonlinegamblingweb.com/slots',
-                      ColorManager.error.withOpacity(0.2),
+                      ColorManager.error.withValues(alpha: 0.2),
                       ColorManager.error,
                     ),
                     _buildQuickPreset(
                       'Violent Gory Games 💥 (Unsafe)',
                       'https://www.badsite-violent-games.com/gory-scenes',
-                      ColorManager.error.withOpacity(0.2),
+                      ColorManager.error.withValues(alpha: 0.2),
                       ColorManager.error,
                     ),
                   ],
@@ -438,8 +437,8 @@ class _ChildDashboardState extends State<ChildDashboard> {
                               child: ListTile(
                                 leading: CircleAvatar(
                                   backgroundColor: isHarmfulDemo
-                                      ? ColorManager.error.withOpacity(0.2)
-                                      : ColorManager.white.withOpacity(0.1),
+                                      ? ColorManager.error.withValues(alpha: 0.2)
+                                      : ColorManager.white.withValues(alpha: 0.1),
                                   child: Icon(
                                     isHarmfulDemo
                                         ? Icons.report_problem_rounded
@@ -489,7 +488,7 @@ class _ChildDashboardState extends State<ChildDashboard> {
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSize.s8),
-        side: BorderSide(color: ColorManager.grey.withOpacity(0.5))
+        side: BorderSide(color: ColorManager.grey.withValues(alpha: 0.5))
       ),
     );
   }

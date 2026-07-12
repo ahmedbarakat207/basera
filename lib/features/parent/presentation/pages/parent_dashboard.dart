@@ -278,7 +278,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                   itemBuilder: (context, index) {
                     final url = flaggedUrls[index];
                     return Card(
-                      color: isDark
+                      color: true
                           ? const Color(0xFF2D2D35)
                           : const Color(0xFFFFF7ED),
                       margin: EdgeInsets.symmetric(vertical: 6.h),
@@ -414,10 +414,10 @@ class _ParentDashboardState extends State<ParentDashboard> {
               // Theme toggle
               IconButton(
                 icon: Icon(
-                  isDark ? Icons.wb_sunny_rounded : Icons.nights_stay_rounded,
+                  true ? Icons.wb_sunny_rounded : Icons.nights_stay_rounded,
                   color: Colors.white,
                 ),
-                tooltip: isDark ? 'Light Mode' : 'Dark Mode',
+                tooltip: true ? 'Light Mode' : 'Dark Mode',
                 onPressed: () => context.read<ThemeCubit>().toggleTheme(),
               ),
               // Switch to child mode
@@ -454,7 +454,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // ── No Children Linked Banner ──────────────────────
-                        if (children.isEmpty) _buildNoChildrenBanner(isDark),
+                        if (children.isEmpty) _buildNoChildrenBanner(true),
 
                         // ── Child Profile Selector ─────────────────────────
                         if (children.isNotEmpty) ...[
@@ -499,7 +499,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                         SizedBox(height: 24.h),
 
                         // ── Tabs ───────────────────────────────────────────
-                        _buildTabBar(isDark),
+                        _buildTabBar(true),
                         SizedBox(height: 20.h),
 
                         // ── Tab Content ────────────────────────────────────
@@ -617,7 +617,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
             color: ColorManager.primary,
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(
-              color: isDark
+              color: true
                   ? const Color(0xFF2D2D35)
                   : ColorManager.grey.withValues(alpha: 0.5),
             ),
@@ -743,7 +743,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
           backgroundColor:
               ColorManager.primary,
           borderBackgroundColor:
-              isDark ? const Color(0xFF2D2D35) : ColorManager.grey,
+              true ? const Color(0xFF2D2D35) : ColorManager.grey,
           onChanged: (val) =>
               context.read<ParentBloc>().add(FilterUrls(query: val)),
         ),
@@ -803,7 +803,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
     
   ) {
     final labelColor = isHarmful ? ColorManager.error : Colors.green;
-    final labelBg = isHarmful ? ColorManager.error.withOpacity(0.1) : Colors.green.withOpacity(0.1);
+    final labelBg = isHarmful ? ColorManager.error.withValues(alpha: 0.1) : Colors.green.withValues(alpha: 0.1);
 
     return Card(
       color: ColorManager.primary,
@@ -812,7 +812,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.r),
         side: BorderSide(
-          color: isDark
+          color: true
               ? const Color(0xFF2D2D35)
               : ColorManager.grey.withValues(alpha: 0.3),
         ),
@@ -884,7 +884,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 width: double.infinity,
                 padding: EdgeInsets.all(8.r),
                 decoration: BoxDecoration(
-                  color: isDark
+                  color: true
                       ? const Color(0xFF2D2D35)
                       : ColorManager.primary,
                   borderRadius: BorderRadius.circular(8.r),
@@ -895,7 +895,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                     fontSize: 12.sp,
                     fontStyle: FontStyle.italic,
                     color:
-                        isDark ? Colors.white70 : ColorManager.white,
+                        true ? Colors.white70 : ColorManager.white,
                   ),
                 ),
               ),
@@ -915,7 +915,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
           color: ColorManager.primary,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
-            color: isDark
+            color: true
                 ? const Color(0xFF2D2D35)
                 : ColorManager.grey.withValues(alpha: 0.5),
           ),
@@ -946,7 +946,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
 
     final isGood = report.overallRiskScore < 5.0;
     final statusColor = isGood ? Colors.green : ColorManager.error;
-    final statusBg = isGood ? Colors.green.withOpacity(0.1) : ColorManager.error.withOpacity(0.1);
+    final statusBg = isGood ? Colors.green.withValues(alpha: 0.1) : ColorManager.error.withValues(alpha: 0.1);
     final harmfulCount = report.analyses.where((a) => a.isHarmful).length;
     final safeCount = report.analyses.where((a) => !a.isHarmful).length;
 
@@ -956,7 +956,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
         color: ColorManager.primary,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: isDark
+          color: true
               ? const Color(0xFF2D2D35)
               : ColorManager.grey.withValues(alpha: 0.5),
         ),
@@ -1025,12 +1025,12 @@ class _ParentDashboardState extends State<ParentDashboard> {
                     Expanded(
                         child: _buildStatChip(
                             '$safeCount', 'Safe Sites',
-                            Colors.green.withOpacity(0.1), Colors.green)),
+                            Colors.green.withValues(alpha: 0.1), Colors.green)),
                     SizedBox(width: 12.w),
                     Expanded(
                         child: _buildStatChip(
                             '$harmfulCount', 'Harmful Sites',
-                            ColorManager.error.withOpacity(0.1), ColorManager.error)),
+                            ColorManager.error.withValues(alpha: 0.1), ColorManager.error)),
                   ],
                 ),
               ],
@@ -1088,9 +1088,9 @@ class _ParentDashboardState extends State<ParentDashboard> {
 
     return Column(
       children: [
-        BaseraRiskLineChart(weeklyScores: weeklyScores: isDark),
+        BaseraRiskLineChart(weeklyScores: weeklyScores),
         SizedBox(height: 16.h),
-        BaseraCategoryDonutChart(categoryCounts: categories: isDark),
+        BaseraCategoryDonutChart(categoryCounts: categories),
       ],
     );
   }

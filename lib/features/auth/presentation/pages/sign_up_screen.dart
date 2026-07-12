@@ -70,7 +70,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           final isLoading = state is AuthLoading;
           return SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: AppPadding.p24, vertical: AppPadding.p20),
+              padding: const EdgeInsets.symmetric(horizontal: AppSize.s24, vertical: AppPadding.p20),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -79,7 +79,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     SizedBox(height: 20.h),
                     Center(
                       child: Image.asset(
-                        ImageAssets.logo,
+                        ImageAssets.basseraLogo,
                         height: 80.h,
                         errorBuilder: (context, error, stackTrace) => Icon(Icons.security, size: 60.sp, color: ColorManager.white),
                       ),
@@ -213,7 +213,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         duration: const Duration(milliseconds: 250),
         padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 12.w),
         decoration: BoxDecoration(
-          color: isSelected ? ColorManager.grey.withOpacity(0.3) : ColorManager.primary,
+          color: isSelected ? ColorManager.grey.withValues(alpha: 0.3) : ColorManager.primary,
           borderRadius: BorderRadius.circular(AppSize.s16),
           border: Border.all(
             color: isSelected ? ColorManager.white : ColorManager.grey,

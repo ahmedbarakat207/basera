@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+
 import 'package:basera/core/resources/assets_manager.dart';
 import 'package:basera/core/resources/color_manager.dart';
 import 'package:basera/core/resources/styles_manager.dart';
@@ -65,7 +65,7 @@ class _SignInScreenState extends State<SignInScreen> {
           final isLoading = state is AuthLoading;
           return SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: AppPadding.p24, vertical: AppPadding.p20),
+              padding: const EdgeInsets.symmetric(horizontal: AppSize.s24, vertical: AppPadding.p20),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -74,7 +74,7 @@ class _SignInScreenState extends State<SignInScreen> {
                     SizedBox(height: 50.h),
                     Center(
                       child: Image.asset(
-                        ImageAssets.logo, // "assets/images/bassera_logo.png" defined in assets_manager
+                        ImageAssets.basseraLogo, // "assets/images/bassera_logo.png" defined in assets_manager
                         height: 120.h,
                         errorBuilder: (context, error, stackTrace) => Icon(Icons.security, size: 80.sp, color: ColorManager.white),
                       ),
@@ -137,7 +137,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             child: Container(
                               padding: EdgeInsets.symmetric(vertical: 8.h),
                               decoration: BoxDecoration(
-                                color: ColorManager.grey.withOpacity(0.2),
+                                color: ColorManager.grey.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(AppSize.s12),
                                 border: Border.all(color: ColorManager.grey),
                               ),
@@ -163,7 +163,7 @@ class _SignInScreenState extends State<SignInScreen> {
                             child: Container(
                               padding: EdgeInsets.symmetric(vertical: 8.h),
                               decoration: BoxDecoration(
-                                color: ColorManager.grey.withOpacity(0.2),
+                                color: ColorManager.grey.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(AppSize.s12),
                                 border: Border.all(color: ColorManager.grey),
                               ),
