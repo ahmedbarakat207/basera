@@ -164,19 +164,26 @@ class FirebaseBackendService {
     // Remember parent credentials for re-auth
     final parentUid = parentUser.uid;
 
-    // 1. Verify child credentials and get their UID
+    // 1. Verify child credentials using a SECONDARY Firebase App 
+    // so we don't log the parent out of the main instance!
+    FirebaseApp? secondaryApp;
+    try {
+      secondaryApp = Firebase.app('SecondaryApp');
+    } catch (e) {
+      secondaryApp = await Firebase.initializeApp(
+        name: 'SecondaryApp',
+        options: Firebase.app().options,
+      );
+    }
+    final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+
     UserCredential childCred;
     try {
-      childCred = await _auth.signInWithEmailAndPassword(
+      childCred = await secondaryAuth.signInWithEmailAndPassword(
         email: childEmail,
         password: childPassword,
       );
     } on FirebaseAuthException catch (e) {
-      // Restore parent session before throwing
-      // (auth state changed to child temporarily — sign back out)
-      await _auth.signOut();
-      // Re-authenticate the parent — we can't do this silently without their
-      // password, so instead we re-throw a clear error for the UI to handle.
       throw Exception(_mapAuthCode(e.code));
     }
 
@@ -188,13 +195,13 @@ class FirebaseBackendService {
     // 2. Validate the child account has role == 'child'
     final childDoc = await _db.collection('users').doc(childUser.uid).get();
     if (!childDoc.exists) {
-      await _auth.signOut();
+      await secondaryAuth.signOut();
       throw Exception('This account does not exist in Basera Safety. Ask the child to register first.');
     }
     final childData = childDoc.data()!;
     final childRole = childData['role'] as String? ?? 'parent';
     if (childRole != 'child') {
-      await _auth.signOut();
+      await secondaryAuth.signOut();
       throw Exception('The account "$childEmail" is registered as a parent, not a child account.');
     }
 
@@ -203,13 +210,12 @@ class FirebaseBackendService {
     if (existingParentUid != null && existingParentUid != parentUid) {
       // For this demo, we will just silently override the previous parent link 
       // instead of throwing an error, so users don't get stuck.
-      // In production, we would require the previous parent to unlink first.
     }
 
     final childUid = childUser.uid;
     final childName = childData['name'] as String? ?? 'Child';
 
-    // 4. Write bidirectional Firestore link
+    // 4. Write bidirectional Firestore link (Using primary app, authenticated as Parent!)
     final batch = _db.batch();
 
     // Child doc: set parentUid
@@ -224,11 +230,9 @@ class FirebaseBackendService {
 
     await batch.commit();
 
-    // 5. Sign child back out now that we are done with Firestore
-    await _auth.signOut();
+    // 5. Sign child out of secondary app
+    await secondaryAuth.signOut();
 
-    // NOTE: After signOut the parent's Firebase Auth session is gone.
-    // We cannot silently re-sign-in the parent without their password.
     // 6. Persist locally so parent stays logged in after app restart
     await ChildHistoryService.instance.setUserRole('parent');
     await ChildHistoryService.instance.setIsLoggedIn(true);
