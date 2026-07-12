@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:basera/firebase_options.dart';
 import 'package:basera/core/services/accessibility_monitoring_service.dart';
 import 'package:basera/core/utils/child_history_service.dart';
 import 'package:basera/core/services/basera_database.dart';
@@ -50,9 +49,7 @@ void onStart(ServiceInstance service) async {
 
   try {
     // Initialize essential native services in this isolated background thread
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    await Firebase.initializeApp();
     await BaseraDatabase.instance.database;
 
     // Check if we should actually be monitoring
