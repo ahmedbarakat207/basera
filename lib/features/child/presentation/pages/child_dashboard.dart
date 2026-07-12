@@ -11,6 +11,7 @@ import 'package:basera/core/widgets/main_text_field.dart';
 import 'package:basera/features/child/presentation/bloc/child_bloc.dart';
 import 'package:basera/features/child/presentation/bloc/child_event.dart';
 import 'package:basera/features/child/presentation/bloc/child_state.dart';
+import 'package:basera/core/services/accessibility_monitoring_service.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_event.dart';
 
@@ -25,12 +26,26 @@ class _ChildDashboardState extends State<ChildDashboard> {
   final _urlController = TextEditingController();
   int _xp = 0;
   int _streak = 0;
+  bool _isAccessibilityEnabled = true;
 
   @override
   void initState() {
     super.initState();
     context.read<ChildBloc>().add(LoadChildHistory());
     _loadGamification();
+    _checkAccessibility();
+  }
+
+  Future<void> _checkAccessibility() async {
+    // Only check if not on web, but this is an Android specific feature
+    try {
+      final isGranted = await AccessibilityMonitoringService.instance.requestPermission();
+      if (mounted) {
+        setState(() {
+          _isAccessibilityEnabled = isGranted;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -204,6 +219,32 @@ class _ChildDashboardState extends State<ChildDashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (!_isAccessibilityEnabled)
+                  Container(
+                    margin: EdgeInsets.only(bottom: AppMargin.m16),
+                    padding: EdgeInsets.all(AppPadding.p12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(AppSize.s12),
+                      border: Border.all(color: Colors.orange),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Text(
+                            'Enable Accessibility to monitor background traffic.',
+                            style: StylesManager.litlleHintLine().copyWith(color: Colors.orange),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: _checkAccessibility,
+                          child: Text('Enable', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                        )
+                      ],
+                    ),
+                  ),
                 // Gamification Status Card
                 Container(
                   padding: const EdgeInsets.all(AppPadding.p16),
