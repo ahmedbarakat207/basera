@@ -1,11 +1,12 @@
 import 'package:basera/core/routes_manger/route_generator.dart';
-import 'package:basera/core/routes_manger/routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:basera/core/utils/child_history_service.dart';
 import 'package:basera/core/services/firebase_backend_service.dart';
+import 'package:basera/features/auth/presentation/pages/sign_up_screen.dart';
+import 'package:basera/features/dashboard_wrapper_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,9 +48,8 @@ class BasseraApp extends StatelessWidget {
       splitScreenMode: true,
       builder: (context, child) => MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: child,
+        home: isLoggedIn ? const DashboardWrapperScreen() : const SignUpScreen(),
         onGenerateRoute: RouteGenerator.getRoute,
-        initialRoute: isLoggedIn ? Routes.mainRoute : Routes.signUpRoute,
       ),
     );
   }

@@ -115,12 +115,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Create Account',
-                      style: GoogleFonts.outfit(
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.selectedText,
+                    Expanded(
+                      child: Text(
+                        'Create Account',
+                        style: GoogleFonts.outfit(
+                          fontSize: 24.sp,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.selectedText,
+                        ),
                       ),
                     ),
                     TextButton(
