@@ -47,7 +47,9 @@ class AccessibilityMonitoringService {
         final rawText = event.text;
         List<String> texts = [];
         if (rawText is List) {
-          texts = rawText.map((e) => e.toString()).toList();
+          for (var e in rawText) {
+            if (e != null) texts.add(e.toString());
+          }
         } else if (rawText is String) {
           texts = [rawText];
         }
@@ -65,7 +67,7 @@ class AccessibilityMonitoringService {
             
             try {
               await FirebaseBackendService.instance.syncUrlVisitDirect(validatedUrl);
-              await ChildHistoryService.instance.addVisitedUrl(validatedUrl);
+              await ChildHistoryService.instance.addUrl(validatedUrl);
             } catch (e) {
               debugPrint('Error syncing background URL: $e');
             }
