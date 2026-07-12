@@ -1,0 +1,28 @@
+=========================================
+      BASERA SAFETY - DEMO ACCOUNTS
+=========================================
+
+To demonstrate the AI child-safety link analysis, use the following credentials on the login screen.
+
+-----------------------------------------
+1. PARENT ACCOUNT (Monitor Control)
+-----------------------------------------
+Email: parent@basera.com
+Password: parentpassword123
+Role: Parent
+
+-----------------------------------------
+2. CHILD ACCOUNT (Browsing Simulation)
+-----------------------------------------
+Email: child@basera.com
+Password: childpassword123
+Role: Child
+
+-----------------------------------------
+HOW TO TEST:
+1. Launch the application.
+2. If you are not on the Sign In screen, click "Sign In" at the bottom of the Sign Up screen.
+3. Log in as the Child first to simulate browsing. You can click on the preset buttons (Wikipedia, Duolingo, Slots, etc.) or type custom URLs to populate the child's feed.
+4. Log out or click "Switch Mode".
+5. Log in as the Parent.
+6. Click "Analyze with Groq AI" to trigger safety reports on the child's browsing history.
