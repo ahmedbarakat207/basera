@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:basera/core/resources/app_colors.dart';
+import 'package:basera/core/resources/assets_manager.dart';
+import 'package:basera/core/resources/color_manager.dart';
+import 'package:basera/core/resources/styles_manager.dart';
+import 'package:basera/core/resources/values_manager.dart';
 import 'package:basera/core/routes_manger/routes.dart';
-import 'package:basera/core/widgets/custom_button.dart';
+import 'package:basera/core/widgets/main_botton.dart';
 import 'package:basera/core/widgets/main_text_field.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_event.dart';
@@ -49,7 +51,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backGround,
+      backgroundColor: ColorManager.primary,
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is Authenticated) {
@@ -57,9 +59,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(state.message, style: StylesManager.lableLine().copyWith(color: ColorManager.white)),
                 behavior: SnackBarBehavior.floating,
-                backgroundColor: AppColors.error,
+                backgroundColor: ColorManager.error,
               ),
             );
           }
@@ -68,60 +70,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
           final isLoading = state is AuthLoading;
           return SafeArea(
             child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+              padding: const EdgeInsets.symmetric(horizontal: AppPadding.p24, vertical: AppPadding.p20),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: 40.h),
-                    // Premium branding/logo area
+                    SizedBox(height: 20.h),
                     Center(
-                      child: Container(
-                        padding: EdgeInsets.all(16.r),
-                        decoration: BoxDecoration(
-                          color: AppColors.lightBlue,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.security_rounded,
-                          size: 48.sp,
-                          color: AppColors.primary,
-                        ),
+                      child: Image.asset(
+                        ImageAssets.logo,
+                        height: 80.h,
+                        errorBuilder: (context, error, stackTrace) => Icon(Icons.security, size: 60.sp, color: ColorManager.white),
                       ),
                     ),
-                    SizedBox(height: 16.h),
-                    Center(
-                      child: Text(
-                        'Basera Safety',
-                        style: GoogleFonts.outfit(
-                          fontSize: 32.sp,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryVariant,
-                        ),
-                      ),
-                    ),
-                    Center(
-                      child: Text(
-                        'AI-powered child protection system',
-                        style: GoogleFonts.outfit(
-                          fontSize: 14.sp,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 40.h),
+                    SizedBox(height: 20.h),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
                           child: Text(
                             'Create Account',
-                            style: GoogleFonts.outfit(
-                              fontSize: 24.sp,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.selectedText,
-                            ),
+                            style: StylesManager.headerSignLine(),
                           ),
                         ),
                         TextButton(
@@ -130,10 +100,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           },
                           child: Text(
                             'Sign In',
-                            style: GoogleFonts.outfit(
-                              fontSize: 16.sp,
+                            style: StylesManager.descriptionLine().copyWith(
+                              color: ColorManager.white,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
                             ),
                           ),
                         ),
@@ -144,8 +113,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       controller: _nameController,
                       label: 'Full Name',
                       hint: 'Enter your name',
-                      backgroundColor: AppColors.surface,
-                      borderBackgroundColor: AppColors.border,
+                      backgroundColor: ColorManager.primary,
+                      borderBackgroundColor: ColorManager.grey,
+                      labelTextStyle: StylesManager.lableLine().copyWith(color: ColorManager.white),
+                      cursorColor: ColorManager.white,
                       validation: (val) => val == null || val.isEmpty ? 'Please enter your name' : null,
                     ),
                     SizedBox(height: 16.h),
@@ -153,9 +124,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       controller: _emailController,
                       label: 'Email Address',
                       hint: 'Enter your email',
-                      backgroundColor: AppColors.surface,
-                      borderBackgroundColor: AppColors.border,
+                      backgroundColor: ColorManager.primary,
+                      borderBackgroundColor: ColorManager.grey,
+                      labelTextStyle: StylesManager.lableLine().copyWith(color: ColorManager.white),
                       textInputType: TextInputType.emailAddress,
+                      cursorColor: ColorManager.white,
                       validation: (val) {
                         if (val == null || val.isEmpty) return 'Please enter your email';
                         if (!val.contains('@')) return 'Enter a valid email address';
@@ -168,20 +141,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       label: 'Password',
                       hint: '••••••••',
                       isObscured: true,
-                      backgroundColor: AppColors.surface,
-                      borderBackgroundColor: AppColors.border,
+                      backgroundColor: ColorManager.primary,
+                      borderBackgroundColor: ColorManager.grey,
+                      labelTextStyle: StylesManager.lableLine().copyWith(color: ColorManager.white),
+                      cursorColor: ColorManager.white,
                       validation: (val) => val != null && val.length < 6 ? 'Password must be at least 6 characters' : null,
                     ),
                     SizedBox(height: 24.h),
                     
-                    // Interactive Role Picker
                     Text(
                       'Choose Your Role',
-                      style: GoogleFonts.outfit(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.selectedText,
-                      ),
+                      style: StylesManager.lableLine().copyWith(color: ColorManager.white),
                     ),
                     SizedBox(height: 12.h),
                     Row(
@@ -190,7 +160,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           child: _buildRoleCard(
                             role: 'parent',
                             title: 'Parent',
-                            description: 'Monitor safety, read reports',
+                            description: 'Monitor safety',
                             icon: Icons.supervisor_account_rounded,
                           ),
                         ),
@@ -199,7 +169,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           child: _buildRoleCard(
                             role: 'child',
                             title: 'Child',
-                            description: 'Simulate browsing activities',
+                            description: 'Simulate browsing',
                             icon: Icons.child_care_rounded,
                           ),
                         ),
@@ -207,16 +177,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                     SizedBox(height: 40.h),
                     Center(
-                      child: CustomButton(
-                        text: 'Sign Up',
-                        isLoading: isLoading,
-                        onPressed: isLoading ? null : _submit,
-                        width: double.infinity,
-                        height: 52.h,
-                        backgroundColor: AppColors.primary,
-                        textColor: Colors.white,
-                        borderRadius: 12.r,
-                      ),
+                      child: isLoading 
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : MainAppButton(
+                            text: 'Sign Up',
+                            textStyle: StylesManager.mediumLine(),
+                            onTap: _submit,
+                          ),
                     ),
                     SizedBox(height: 20.h),
                   ],
@@ -246,46 +213,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
         duration: const Duration(milliseconds: 250),
         padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 12.w),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.lightBlue : AppColors.surface,
-          borderRadius: BorderRadius.circular(16.r),
+          color: isSelected ? ColorManager.grey.withOpacity(0.3) : ColorManager.primary,
+          borderRadius: BorderRadius.circular(AppSize.s16),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
+            color: isSelected ? ColorManager.white : ColorManager.grey,
             width: isSelected ? 2 : 1,
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.15),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ]
-              : null,
         ),
         child: Column(
           children: [
             Icon(
               icon,
               size: 32.sp,
-              color: isSelected ? AppColors.primary : AppColors.textDisabled,
+              color: isSelected ? ColorManager.white : ColorManager.grey,
             ),
             SizedBox(height: 8.h),
             Text(
               title,
-              style: GoogleFonts.outfit(
-                fontSize: 16.sp,
+              style: StylesManager.lableLine().copyWith(
+                color: isSelected ? ColorManager.white : ColorManager.grey,
                 fontWeight: FontWeight.bold,
-                color: isSelected ? AppColors.primaryVariant : AppColors.selectedText,
               ),
             ),
             SizedBox(height: 4.h),
             Text(
               description,
               textAlign: TextAlign.center,
-              style: GoogleFonts.outfit(
-                fontSize: 11.sp,
-                color: AppColors.textSecondary,
-              ),
+              style: StylesManager.litlleHintLine(),
             ),
           ],
         ),

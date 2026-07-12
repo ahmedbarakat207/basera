@@ -1,17 +1,15 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:basera/core/resources/color_manager.dart';
+import 'package:basera/core/resources/styles_manager.dart';
 
 class BaseraRiskLineChart extends StatelessWidget {
   final List<double> weeklyScores;
-  final bool isDark;
-
   const BaseraRiskLineChart({
     super.key,
     required this.weeklyScores,
-    this.isDark = false,
-  });
+    });
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +17,10 @@ class BaseraRiskLineChart extends StatelessWidget {
       height: 220.h,
       padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E24) : Colors.white,
+        color: ColorManager.primary,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: isDark ? const Color(0xFF2D2D35) : const Color(0xFFE2E8F0),
+          color: ColorManager.grey,
         ),
       ),
       child: Column(
@@ -30,11 +28,7 @@ class BaseraRiskLineChart extends StatelessWidget {
         children: [
           Text(
             'Risk Trend (Past 7 Days)',
-            style: GoogleFonts.outfit(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white70 : Colors.black54,
-            ),
+            style: StylesManager.lableLine().copyWith(color: ColorManager.grey),
           ),
           SizedBox(height: 12.h),
           Expanded(
@@ -42,7 +36,7 @@ class BaseraRiskLineChart extends StatelessWidget {
               size: Size.infinite,
               painter: _LineChartPainter(
                 scores: weeklyScores.isNotEmpty ? weeklyScores : [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                isDark: isDark,
+                
               ),
             ),
           ),
@@ -54,14 +48,12 @@ class BaseraRiskLineChart extends StatelessWidget {
 
 class _LineChartPainter extends CustomPainter {
   final List<double> scores;
-  final bool isDark;
-
-  _LineChartPainter({required this.scores, required this.isDark});
+  _LineChartPainter({required this.scores, });
 
   @override
   void paint(Canvas canvas, Size size) {
     final gridPaint = Paint()
-      ..color = isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)
+      ..color = ColorManager.white.withOpacity(0.05)
       ..strokeWidth = 1.0;
 
     final linePaint = Paint()
@@ -127,7 +119,7 @@ class _LineChartPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     final dotBorderPaint = Paint()
-      ..color = Colors.white
+      ..color = ColorManager.primary
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
 
@@ -143,13 +135,10 @@ class _LineChartPainter extends CustomPainter {
 
 class BaseraCategoryDonutChart extends StatelessWidget {
   final Map<String, int> categoryCounts;
-  final bool isDark;
-
   const BaseraCategoryDonutChart({
     super.key,
     required this.categoryCounts,
-    this.isDark = false,
-  });
+    });
 
   @override
   Widget build(BuildContext context) {
@@ -159,10 +148,10 @@ class BaseraCategoryDonutChart extends StatelessWidget {
       height: 200.h,
       padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E24) : Colors.white,
+        color: ColorManager.primary,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: isDark ? const Color(0xFF2D2D35) : const Color(0xFFE2E8F0),
+          color: ColorManager.grey,
         ),
       ),
       child: Column(
@@ -170,11 +159,7 @@ class BaseraCategoryDonutChart extends StatelessWidget {
         children: [
           Text(
             'Activity Category Breakdown',
-            style: GoogleFonts.outfit(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white70 : Colors.black54,
-            ),
+            style: StylesManager.lableLine().copyWith(color: ColorManager.grey),
           ),
           SizedBox(height: 12.h),
           Expanded(
@@ -214,11 +199,7 @@ class BaseraCategoryDonutChart extends StatelessWidget {
                                     Expanded(
                                       child: Text(
                                         '${e.key}: ${e.value}',
-                                        style: GoogleFonts.outfit(
-                                          fontSize: 12.sp,
-                                          color: isDark ? Colors.white70 : Colors.black87,
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                                        style: StylesManager.litlleHintLine().copyWith(color: ColorManager.grey),
                                       ),
                                     ),
                                   ],
@@ -233,10 +214,7 @@ class BaseraCategoryDonutChart extends StatelessWidget {
                 : Center(
                     child: Text(
                       'No category data available',
-                      style: GoogleFonts.outfit(
-                        color: Colors.grey,
-                        fontSize: 13.sp,
-                      ),
+                      style: StylesManager.litlleHintLine().copyWith(color: ColorManager.grey),
                     ),
                   ),
           ),
@@ -293,7 +271,7 @@ class _DonutChartPainter extends CustomPainter {
 
     // Draw inner circle to create donut effect
     final innerPaint = Paint()
-      ..color = Colors.white
+      ..color = ColorManager.primary
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(center, center), innerRadius, innerPaint);
   }

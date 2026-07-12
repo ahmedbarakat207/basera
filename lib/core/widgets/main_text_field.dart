@@ -29,7 +29,6 @@ class BuildTextField extends StatefulWidget {
     this.borderBackgroundColor,
     this.suffixIcon,
     this.borderradius,
-    this.onChanged,
   });
 
   final TextEditingController? controller;
@@ -52,7 +51,6 @@ class BuildTextField extends StatefulWidget {
   final String? Function(String?)? validation;
   final void Function()? onTap;
   final double? borderradius;
-  final ValueChanged<String>? onChanged;
 
   @override
   State<BuildTextField> createState() => _BuildTextFieldState();
@@ -99,7 +97,6 @@ class _BuildTextFieldState extends State<BuildTextField> {
             obscuringCharacter: '*',
             cursorColor: widget.cursorColor ?? ColorManager.black,
             onTap: widget.onTap,
-            onChanged: widget.onChanged,
             onEditingComplete: () {
               widget.focusNode?.unfocus();
               if (widget.nextFocus != null) {

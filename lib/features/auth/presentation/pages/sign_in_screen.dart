@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:basera/core/resources/app_colors.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:basera/core/resources/assets_manager.dart';
+import 'package:basera/core/resources/color_manager.dart';
+import 'package:basera/core/resources/styles_manager.dart';
+import 'package:basera/core/resources/values_manager.dart';
 import 'package:basera/core/routes_manger/routes.dart';
-import 'package:basera/core/widgets/custom_button.dart';
+import 'package:basera/core/widgets/main_botton.dart';
 import 'package:basera/core/widgets/main_text_field.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_event.dart';
@@ -43,7 +46,7 @@ class _SignInScreenState extends State<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backGround,
+      backgroundColor: ColorManager.primary,
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is Authenticated) {
@@ -51,9 +54,9 @@ class _SignInScreenState extends State<SignInScreen> {
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
+                content: Text(state.message, style: StylesManager.lableLine().copyWith(color: ColorManager.white)),
                 behavior: SnackBarBehavior.floating,
-                backgroundColor: AppColors.error,
+                backgroundColor: ColorManager.error,
               ),
             );
           }
@@ -62,7 +65,7 @@ class _SignInScreenState extends State<SignInScreen> {
           final isLoading = state is AuthLoading;
           return SafeArea(
             child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 20.h),
+              padding: const EdgeInsets.symmetric(horizontal: AppPadding.p24, vertical: AppPadding.p20),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -70,56 +73,32 @@ class _SignInScreenState extends State<SignInScreen> {
                   children: [
                     SizedBox(height: 50.h),
                     Center(
-                      child: Container(
-                        padding: EdgeInsets.all(16.r),
-                        decoration: BoxDecoration(
-                          color: AppColors.lightBlue,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.lock_open_rounded,
-                          size: 48.sp,
-                          color: AppColors.primary,
-                        ),
+                      child: Image.asset(
+                        ImageAssets.logo, // "assets/images/bassera_logo.png" defined in assets_manager
+                        height: 120.h,
+                        errorBuilder: (context, error, stackTrace) => Icon(Icons.security, size: 80.sp, color: ColorManager.white),
                       ),
                     ),
-                    SizedBox(height: 16.h),
-                    Center(
-                      child: Text(
-                        'Basera Safety',
-                        style: GoogleFonts.outfit(
-                          fontSize: 32.sp,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryVariant,
-                        ),
-                      ),
-                    ),
-                    Center(
-                      child: Text(
-                        'Sign in to access your parent or child dashboard',
-                        style: GoogleFonts.outfit(
-                          fontSize: 14.sp,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 50.h),
+                    SizedBox(height: 40.h),
                     Text(
                       'Sign In',
-                      style: GoogleFonts.outfit(
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.selectedText,
-                      ),
+                      style: StylesManager.headerSignLine(),
                     ),
-                    SizedBox(height: 16.h),
+                    SizedBox(height: 8.h),
+                    Text(
+                      'Welcome back to Basera Safety',
+                      style: StylesManager.descriptionLine(),
+                    ),
+                    SizedBox(height: 30.h),
                     BuildTextField(
                       controller: _emailController,
                       label: 'Email Address',
                       hint: 'Enter your email',
-                      backgroundColor: AppColors.surface,
-                      borderBackgroundColor: AppColors.border,
+                      backgroundColor: ColorManager.primary,
+                      borderBackgroundColor: ColorManager.grey,
+                      labelTextStyle: StylesManager.lableLine().copyWith(color: ColorManager.white),
                       textInputType: TextInputType.emailAddress,
+                      cursorColor: ColorManager.white,
                       validation: (val) {
                         if (val == null || val.isEmpty) return 'Please enter your email';
                         if (!val.contains('@')) return 'Enter a valid email address';
@@ -132,18 +111,18 @@ class _SignInScreenState extends State<SignInScreen> {
                       label: 'Password',
                       hint: '••••••••',
                       isObscured: true,
-                      backgroundColor: AppColors.surface,
-                      borderBackgroundColor: AppColors.border,
+                      backgroundColor: ColorManager.primary,
+                      borderBackgroundColor: ColorManager.grey,
+                      labelTextStyle: StylesManager.lableLine().copyWith(color: ColorManager.white),
+                      cursorColor: ColorManager.white,
                       validation: (val) => val == null || val.isEmpty ? 'Please enter your password' : null,
                     ),
                     SizedBox(height: 24.h),
+                    
+                    // Demo Chips using new styling
                     Text(
-                      'Demo Quick Access (Local & Cloud Testing)',
-                      style: GoogleFonts.outfit(
-                        fontSize: 13.sp,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textSecondary,
-                      ),
+                      'Demo Quick Access (Local & Cloud)',
+                      style: StylesManager.descriptionLine().copyWith(color: ColorManager.white),
                     ),
                     SizedBox(height: 10.h),
                     Row(
@@ -155,16 +134,20 @@ class _SignInScreenState extends State<SignInScreen> {
                               _passwordController.text = 'parentpassword123';
                               _submit();
                             },
-                            child: ActionChip(
-                              backgroundColor: AppColors.lightBlue,
-                              avatar: const Icon(Icons.supervisor_account_rounded, color: AppColors.primary, size: 18),
-                              label: Text(
-                                'Parent Demo',
-                                style: GoogleFonts.outfit(
-                                  color: AppColors.primaryVariant,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12.sp,
-                                ),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color: ColorManager.grey.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(AppSize.s12),
+                                border: Border.all(color: ColorManager.grey),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.supervisor_account, color: ColorManager.white, size: 18.sp),
+                                  SizedBox(width: 8.w),
+                                  Text('Parent Demo', style: StylesManager.litlleHintLine().copyWith(color: ColorManager.white)),
+                                ],
                               ),
                             ),
                           ),
@@ -177,34 +160,35 @@ class _SignInScreenState extends State<SignInScreen> {
                               _passwordController.text = 'childpassword123';
                               _submit();
                             },
-                            child: ActionChip(
-                              backgroundColor: Colors.green.shade50,
-                              avatar: Icon(Icons.child_care_rounded, color: Colors.green.shade800, size: 18),
-                              label: Text(
-                                'Child Demo',
-                                style: GoogleFonts.outfit(
-                                  color: Colors.green.shade800,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12.sp,
-                                ),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color: ColorManager.grey.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(AppSize.s12),
+                                border: Border.all(color: ColorManager.grey),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.child_care, color: ColorManager.white, size: 18.sp),
+                                  SizedBox(width: 8.w),
+                                  Text('Child Demo', style: StylesManager.litlleHintLine().copyWith(color: ColorManager.white)),
+                                ],
                               ),
                             ),
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 30.h),
+                    SizedBox(height: 40.h),
                     Center(
-                      child: CustomButton(
-                        text: 'Sign In',
-                        isLoading: isLoading,
-                        onPressed: isLoading ? null : _submit,
-                        width: double.infinity,
-                        height: 52.h,
-                        backgroundColor: AppColors.primary,
-                        textColor: Colors.white,
-                        borderRadius: 12.r,
-                      ),
+                      child: isLoading 
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : MainAppButton(
+                            text: 'Sign In',
+                            textStyle: StylesManager.mediumLine(),
+                            onTap: _submit,
+                          ),
                     ),
                     SizedBox(height: 24.h),
                     Center(
@@ -215,17 +199,13 @@ class _SignInScreenState extends State<SignInScreen> {
                         child: RichText(
                           text: TextSpan(
                             text: "Don't have an account? ",
-                            style: GoogleFonts.outfit(
-                              fontSize: 14.sp,
-                              color: AppColors.textSecondary,
-                            ),
+                            style: StylesManager.descriptionLine(),
                             children: [
                               TextSpan(
                                 text: 'Sign Up',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 14.sp,
+                                style: StylesManager.descriptionLine().copyWith(
+                                  color: ColorManager.white,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
                                 ),
                               ),
                             ],

@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:basera/core/resources/app_colors.dart';
+import 'package:basera/core/resources/color_manager.dart';
+import 'package:basera/core/resources/styles_manager.dart';
 import 'package:basera/core/routes_manger/routes.dart';
-import 'package:basera/core/widgets/custom_button.dart';
+import 'package:basera/core/widgets/main_botton.dart';
 import 'package:basera/core/widgets/main_text_field.dart';
 import 'package:basera/core/models/safety_report.dart';
 import 'package:basera/core/resources/theme_cubit.dart';
@@ -46,8 +47,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
     final emailCtrl = TextEditingController();
     final passCtrl = TextEditingController();
     final formKey = GlobalKey<FormState>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -64,7 +63,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                     SnackBar(
                       content: Text(
                         '✅ Child account linked successfully!',
-                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+                        style: StylesManager.lableLine().copyWith(fontWeight: FontWeight.bold, color: ColorManager.white),
                       ),
                       backgroundColor: Colors.green.shade600,
                       behavior: SnackBarBehavior.floating,
@@ -78,7 +77,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
               final linkError = state is ParentLoaded ? state.linkError : null;
 
               return AlertDialog(
-                backgroundColor: isDark ? const Color(0xFF1E1E24) : Colors.white,
+                backgroundColor: ColorManager.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20.r),
                 ),
@@ -117,7 +116,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                         'Enter your child\'s Basera Safety login credentials to pair their account with yours.',
                         style: GoogleFonts.outfit(
                           fontSize: 13.sp,
-                          color: isDark ? Colors.white60 : Colors.black54,
+                          color: ColorManager.grey,
                           height: 1.5,
                         ),
                       ),
@@ -127,8 +126,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
                         label: "Child's Email",
                         hint: 'child@example.com',
                         textInputType: TextInputType.emailAddress,
-                        backgroundColor: isDark ? const Color(0xFF2D2D35) : const Color(0xFFF8FAFC),
-                        borderBackgroundColor: isDark ? const Color(0xFF3D3D45) : AppColors.border,
+                        backgroundColor: ColorManager.primary,
+                        borderBackgroundColor: ColorManager.grey,
                         validation: (v) {
                           if (v == null || v.isEmpty) return 'Enter child email';
                           if (!v.contains('@')) return 'Enter a valid email';
@@ -141,8 +140,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
                         label: "Child's Password",
                         hint: '••••••••',
                         isObscured: true,
-                        backgroundColor: isDark ? const Color(0xFF2D2D35) : const Color(0xFFF8FAFC),
-                        borderBackgroundColor: isDark ? const Color(0xFF3D3D45) : AppColors.border,
+                        backgroundColor: ColorManager.primary,
+                        borderBackgroundColor: ColorManager.grey,
                         validation: (v) {
                           if (v == null || v.isEmpty) return 'Enter child password';
                           if (v.length < 6) return 'Password too short';
@@ -186,7 +185,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                         : () => Navigator.of(dialogCtx).pop(),
                     child: Text(
                       'Cancel',
-                      style: GoogleFonts.outfit(color: Colors.grey),
+                      style: StylesManager.lableLine().copyWith(color: ColorManager.grey),
                     ),
                   ),
                   ElevatedButton(
@@ -239,11 +238,10 @@ class _ParentDashboardState extends State<ParentDashboard> {
   // ─────────────────────────────────────────────────────────────────────────
 
   void _showNotificationsDialog(List<String> flaggedUrls) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF1E1E24) : Colors.white,
+        backgroundColor: ColorManager.primary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
         title: Row(
           children: [
@@ -269,7 +267,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                       Text(
                         'No security alerts — all clear!',
                         style: GoogleFonts.outfit(
-                            color: AppColors.textDisabled, fontSize: 13.sp),
+                            color: ColorManager.grey, fontSize: 13.sp),
                       ),
                     ],
                   ),
@@ -312,7 +310,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text('Dismiss',
-                style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                style: StylesManager.lableLine().copyWith(fontWeight: FontWeight.bold, color: ColorManager.white)),
           ),
         ],
       ),
@@ -325,15 +323,13 @@ class _ParentDashboardState extends State<ParentDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return BlocConsumer<ParentBloc, ParentState>(
       listener: (context, state) {
         if (state is ParentError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(state.message),
-              backgroundColor: AppColors.error,
+              backgroundColor: ColorManager.error,
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -365,7 +361,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
         return Scaffold(
           appBar: AppBar(
             backgroundColor:
-                isDark ? const Color(0xFF1E1E24) : AppColors.primary,
+                ColorManager.primary,
             elevation: 0,
             title: Text(
               '🛡️ Parent Control',
@@ -463,32 +459,28 @@ class _ParentDashboardState extends State<ParentDashboard> {
                         // ── Child Profile Selector ─────────────────────────
                         if (children.isNotEmpty) ...[
                           _buildChildSelector(
-                              context, children, selectedChildUid, isDark),
+                              context, children, selectedChildUid),
                           SizedBox(height: 16.h),
                         ],
 
                         // ── Safety Status Card ─────────────────────────────
-                        _buildOverviewCard(latestReport, isDark),
+                        _buildOverviewCard(latestReport),
                         SizedBox(height: 20.h),
 
                         // ── Analyze Button ─────────────────────────────────
                         Row(
                           children: [
                             Expanded(
-                              child: CustomButton(
-                                text: isAnalyzing
+                              child: MainAppButton(
+  text: isAnalyzing
                                     ? 'Analyzing with Iris AI...'
                                     : 'Analyze with Iris AI',
-                                onPressed: (isAnalyzing || allUrls.isEmpty)
+  onTap: (isAnalyzing || allUrls.isEmpty)
                                     ? null
                                     : () => context
                                         .read<ParentBloc>()
-                                        .add(RunAiAnalysis(urls: allUrls)),
-                                isLoading: isAnalyzing,
-                                backgroundColor: const Color(0xFF6366F1),
-                                textColor: Colors.white,
-                                borderRadius: 12.r,
-                              ),
+                                        .add(RunAiAnalysis(urls: allUrls)) as void Function()?,
+),
                             ),
                             if (allUrls.isNotEmpty) ...[
                               SizedBox(width: 12.w),
@@ -497,7 +489,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                                     .read<ParentBloc>()
                                     .add(ClearParentData()),
                                 icon: const Icon(Icons.delete_sweep_rounded),
-                                color: AppColors.error,
+                                color: ColorManager.error,
                                 iconSize: 28.sp,
                                 tooltip: 'Clear History',
                               ),
@@ -513,9 +505,9 @@ class _ParentDashboardState extends State<ParentDashboard> {
                         // ── Tab Content ────────────────────────────────────
                         if (_activeTab == 0)
                           _buildHistoryTab(
-                              context, visitedUrls, latestReport, isDark)
+                              context, visitedUrls, latestReport)
                         else
-                          _buildAnalyticsTab(latestReport, isDark),
+                          _buildAnalyticsTab(latestReport),
                       ],
                     ),
                   ),
@@ -529,7 +521,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
   // WIDGETS
   // ─────────────────────────────────────────────────────────────────────────
 
-  Widget _buildNoChildrenBanner(bool isDark) {
+  Widget _buildNoChildrenBanner() {
     return Container(
       width: double.infinity,
       margin: EdgeInsets.only(bottom: 20.h),
@@ -574,7 +566,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
             icon: const Icon(Icons.person_add_alt_1_rounded),
             label: Text(
               'Link Child Account',
-              style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+              style: StylesManager.lableLine().copyWith(fontWeight: FontWeight.bold, color: ColorManager.white),
             ),
             onPressed: _showLinkChildDialog,
           ),
@@ -587,7 +579,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
     BuildContext context,
     List<Map<String, dynamic>> children,
     String? selectedChildUid,
-    bool isDark,
+    
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -600,7 +592,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
               style: GoogleFonts.outfit(
                 fontSize: 14.sp,
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white70 : AppColors.textSecondary,
+                color: ColorManager.grey,
               ),
             ),
             TextButton.icon(
@@ -622,19 +614,19 @@ class _ParentDashboardState extends State<ParentDashboard> {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 4.h),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E1E24) : AppColors.surface,
+            color: ColorManager.primary,
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(
               color: isDark
                   ? const Color(0xFF2D2D35)
-                  : AppColors.border.withValues(alpha: 0.5),
+                  : ColorManager.grey.withValues(alpha: 0.5),
             ),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: selectedChildUid,
               dropdownColor:
-                  isDark ? const Color(0xFF1E1E24) : Colors.white,
+                  ColorManager.primary,
               isExpanded: true,
               icon: const Icon(Icons.arrow_drop_down_circle_outlined,
                   color: Color(0xFF6366F1)),
@@ -664,7 +656,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                         style: GoogleFonts.outfit(
                           fontWeight: FontWeight.w600,
                           fontSize: 15.sp,
-                          color: isDark ? Colors.white : Colors.black87,
+                          color: ColorManager.white,
                         ),
                       ),
                     ],
@@ -685,23 +677,23 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  Widget _buildTabBar(bool isDark) {
+  Widget _buildTabBar() {
     return Container(
       height: 48.h,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E24) : const Color(0xFFF1F5F9),
+        color: ColorManager.primary,
         borderRadius: BorderRadius.circular(12.r),
       ),
       child: Row(
         children: [
-          _buildTab(0, 'History Feed', isDark),
-          _buildTab(1, 'Safety Charts', isDark),
+          _buildTab(0, 'History Feed'),
+          _buildTab(1, 'Safety Charts'),
         ],
       ),
     );
   }
 
-  Widget _buildTab(int index, String label, bool isDark) {
+  Widget _buildTab(int index, String label, ) {
     final isActive = _activeTab == index;
     return Expanded(
       child: GestureDetector(
@@ -718,7 +710,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
               fontWeight: FontWeight.bold,
               color: isActive
                   ? Colors.white
-                  : (isDark ? Colors.white70 : Colors.black54),
+                  : (ColorManager.grey),
               fontSize: 14.sp,
             ),
           ),
@@ -731,7 +723,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
     BuildContext context,
     List<String> visitedUrls,
     SafetyReport? latestReport,
-    bool isDark,
+    
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -741,7 +733,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
           style: GoogleFonts.outfit(
             fontSize: 14.sp,
             fontWeight: FontWeight.bold,
-            color: isDark ? Colors.white54 : AppColors.textSecondary,
+            color: ColorManager.grey,
           ),
         ),
         SizedBox(height: 8.h),
@@ -749,9 +741,9 @@ class _ParentDashboardState extends State<ParentDashboard> {
           controller: _searchController,
           hint: 'Filter by domain (e.g. wikipedia)...',
           backgroundColor:
-              isDark ? const Color(0xFF1E1E24) : AppColors.surface,
+              ColorManager.primary,
           borderBackgroundColor:
-              isDark ? const Color(0xFF2D2D35) : AppColors.border,
+              isDark ? const Color(0xFF2D2D35) : ColorManager.grey,
           onChanged: (val) =>
               context.read<ParentBloc>().add(FilterUrls(query: val)),
         ),
@@ -763,13 +755,13 @@ class _ParentDashboardState extends State<ParentDashboard> {
               child: Column(
                 children: [
                   Icon(Icons.history_toggle_off_rounded,
-                      size: 48.sp, color: AppColors.textDisabled),
+                      size: 48.sp, color: ColorManager.grey),
                   SizedBox(height: 12.h),
                   Text(
                     'No URLs yet — ask your child to start browsing.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.outfit(
-                        color: AppColors.textSecondary, fontSize: 14.sp),
+                        color: ColorManager.grey, fontSize: 14.sp),
                   ),
                 ],
               ),
@@ -797,7 +789,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                       url.toLowerCase().contains('porn') ||
                       url.toLowerCase().contains('adult'));
 
-              return _buildUrlCard(url, analysis, isHarmful, isDark);
+              return _buildUrlCard(url, analysis, isHarmful);
             },
           ),
       ],
@@ -808,13 +800,13 @@ class _ParentDashboardState extends State<ParentDashboard> {
     String url,
     UrlAnalysis? analysis,
     bool isHarmful,
-    bool isDark,
+    
   ) {
-    final labelColor = isHarmful ? AppColors.error : AppColors.success;
-    final labelBg = isHarmful ? AppColors.redWhite : AppColors.greenWhite;
+    final labelColor = isHarmful ? ColorManager.error : Colors.green;
+    final labelBg = isHarmful ? ColorManager.error.withOpacity(0.1) : Colors.green.withOpacity(0.1);
 
     return Card(
-      color: isDark ? const Color(0xFF1E1E24) : AppColors.surface,
+      color: ColorManager.primary,
       margin: EdgeInsets.symmetric(vertical: 8.h),
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -822,7 +814,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
         side: BorderSide(
           color: isDark
               ? const Color(0xFF2D2D35)
-              : AppColors.border.withValues(alpha: 0.3),
+              : ColorManager.grey.withValues(alpha: 0.3),
         ),
       ),
       child: Padding(
@@ -840,7 +832,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                     style: GoogleFonts.outfit(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? Colors.white : AppColors.selectedText,
+                      color: ColorManager.white,
                     ),
                   ),
                 ),
@@ -866,7 +858,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                       fontSize: 10.sp,
                       color: analysis != null
                           ? labelColor
-                          : AppColors.textDisabled,
+                          : ColorManager.grey,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -877,12 +869,12 @@ class _ParentDashboardState extends State<ParentDashboard> {
             Row(
               children: [
                 Icon(Icons.folder_open_rounded,
-                    size: 14.sp, color: AppColors.textDisabled),
+                    size: 14.sp, color: ColorManager.grey),
                 SizedBox(width: 4.w),
                 Text(
                   'Category: ${analysis?.category ?? "General"}',
                   style: GoogleFonts.outfit(
-                      fontSize: 11.sp, color: AppColors.textSecondary),
+                      fontSize: 11.sp, color: ColorManager.grey),
                 ),
               ],
             ),
@@ -894,7 +886,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 decoration: BoxDecoration(
                   color: isDark
                       ? const Color(0xFF2D2D35)
-                      : AppColors.backGround,
+                      : ColorManager.primary,
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Text(
@@ -903,7 +895,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                     fontSize: 12.sp,
                     fontStyle: FontStyle.italic,
                     color:
-                        isDark ? Colors.white70 : AppColors.selectedText,
+                        isDark ? Colors.white70 : ColorManager.white,
                   ),
                 ),
               ),
@@ -914,30 +906,30 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  Widget _buildOverviewCard(SafetyReport? report, bool isDark) {
+  Widget _buildOverviewCard(SafetyReport? report, ) {
     if (report == null) {
       return Container(
         width: double.infinity,
         padding: EdgeInsets.all(20.r),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E24) : AppColors.surface,
+          color: ColorManager.primary,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
             color: isDark
                 ? const Color(0xFF2D2D35)
-                : AppColors.border.withValues(alpha: 0.5),
+                : ColorManager.grey.withValues(alpha: 0.5),
           ),
         ),
         child: Column(
           children: [
-            Icon(Icons.insights_rounded, size: 48.sp, color: AppColors.textDisabled),
+            Icon(Icons.insights_rounded, size: 48.sp, color: ColorManager.grey),
             SizedBox(height: 12.h),
             Text(
               'No Safety Report Yet',
               style: GoogleFonts.outfit(
                 fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : AppColors.selectedText,
+                color: ColorManager.white,
               ),
             ),
             SizedBox(height: 8.h),
@@ -945,7 +937,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
               'Tap "Analyze with Iris AI" to scan your child\'s browsing history.',
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(
-                  fontSize: 13.sp, color: AppColors.textSecondary),
+                  fontSize: 13.sp, color: ColorManager.grey),
             ),
           ],
         ),
@@ -953,20 +945,20 @@ class _ParentDashboardState extends State<ParentDashboard> {
     }
 
     final isGood = report.overallRiskScore < 5.0;
-    final statusColor = isGood ? AppColors.success : AppColors.error;
-    final statusBg = isGood ? AppColors.greenWhite : AppColors.redWhite;
+    final statusColor = isGood ? Colors.green : ColorManager.error;
+    final statusBg = isGood ? Colors.green.withOpacity(0.1) : ColorManager.error.withOpacity(0.1);
     final harmfulCount = report.analyses.where((a) => a.isHarmful).length;
     final safeCount = report.analyses.where((a) => !a.isHarmful).length;
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E24) : AppColors.surface,
+        color: ColorManager.primary,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
           color: isDark
               ? const Color(0xFF2D2D35)
-              : AppColors.border.withValues(alpha: 0.5),
+              : ColorManager.grey.withValues(alpha: 0.5),
         ),
       ),
       child: Column(
@@ -1026,19 +1018,19 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 Text(report.summary,
                     style: GoogleFonts.outfit(
                         fontSize: 13.sp,
-                        color: AppColors.textSecondary)),
+                        color: ColorManager.grey)),
                 SizedBox(height: 16.h),
                 Row(
                   children: [
                     Expanded(
                         child: _buildStatChip(
                             '$safeCount', 'Safe Sites',
-                            AppColors.greenWhite, AppColors.success)),
+                            Colors.green.withOpacity(0.1), Colors.green)),
                     SizedBox(width: 12.w),
                     Expanded(
                         child: _buildStatChip(
                             '$harmfulCount', 'Harmful Sites',
-                            AppColors.redWhite, AppColors.error)),
+                            ColorManager.error.withOpacity(0.1), ColorManager.error)),
                   ],
                 ),
               ],
@@ -1071,7 +1063,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
     );
   }
 
-  Widget _buildAnalyticsTab(SafetyReport? report, bool isDark) {
+  Widget _buildAnalyticsTab(SafetyReport? report, ) {
     if (report == null) {
       return Center(
         child: Padding(
@@ -1079,7 +1071,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
           child: Text(
             'Run "Analyze with Iris AI" to see charts.',
             style: GoogleFonts.outfit(
-                color: AppColors.textDisabled, fontSize: 14.sp),
+                color: ColorManager.grey, fontSize: 14.sp),
           ),
         ),
       );
@@ -1096,9 +1088,9 @@ class _ParentDashboardState extends State<ParentDashboard> {
 
     return Column(
       children: [
-        BaseraRiskLineChart(weeklyScores: weeklyScores, isDark: isDark),
+        BaseraRiskLineChart(weeklyScores: weeklyScores: isDark),
         SizedBox(height: 16.h),
-        BaseraCategoryDonutChart(categoryCounts: categories, isDark: isDark),
+        BaseraCategoryDonutChart(categoryCounts: categories: isDark),
       ],
     );
   }

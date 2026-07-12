@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:basera/core/resources/app_colors.dart';
+import 'package:basera/core/resources/color_manager.dart';
+import 'package:basera/core/resources/styles_manager.dart';
+import 'package:basera/core/resources/values_manager.dart';
 import 'package:basera/core/routes_manger/routes.dart';
-import 'package:basera/core/widgets/custom_button.dart';
+import 'package:basera/core/widgets/main_botton.dart';
 import 'package:basera/core/widgets/main_text_field.dart';
 import 'package:basera/features/child/presentation/bloc/child_bloc.dart';
 import 'package:basera/features/child/presentation/bloc/child_event.dart';
 import 'package:basera/features/child/presentation/bloc/child_state.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_event.dart';
-
 
 class ChildDashboard extends StatefulWidget {
   const ChildDashboard({super.key});
@@ -76,15 +76,15 @@ class _ChildDashboardState extends State<ChildDashboard> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        backgroundColor: ColorManager.primary,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSize.s20),
+            side: BorderSide(color: ColorManager.grey)
+        ),
         title: Center(
           child: Text(
             '🎉 LEVEL UP! 🎉',
-            style: GoogleFonts.outfit(
-              fontWeight: FontWeight.bold,
-              fontSize: 22.sp,
-              color: const Color(0xFF6366F1),
-            ),
+            style: StylesManager.headerSignLine(),
           ),
         ),
         content: Column(
@@ -92,19 +92,13 @@ class _ChildDashboardState extends State<ChildDashboard> {
           children: [
             Text(
               '🛡️ Safety Rank Level Up 🛡️',
-              style: GoogleFonts.outfit(
-                fontWeight: FontWeight.bold,
-                fontSize: 16.sp,
-              ),
+              style: StylesManager.lableLine().copyWith(color: ColorManager.white),
             ),
             SizedBox(height: 12.h),
             Text(
               'Congratulations! You reached Level $level Web Explorer! Keep browsing safely to unlock more ranks!',
               textAlign: TextAlign.center,
-              style: GoogleFonts.outfit(
-                fontSize: 13.sp,
-                color: Colors.grey.shade600,
-              ),
+              style: StylesManager.descriptionLine().copyWith(color: ColorManager.white),
             ),
           ],
         ),
@@ -114,10 +108,7 @@ class _ChildDashboardState extends State<ChildDashboard> {
               onPressed: () => Navigator.pop(context),
               child: Text(
                 'Awesome!',
-                style: GoogleFonts.outfit(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15.sp,
-                ),
+                style: StylesManager.lableLine().copyWith(color: ColorManager.white),
               ),
             ),
           ),
@@ -171,30 +162,29 @@ class _ChildDashboardState extends State<ChildDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
+      backgroundColor: ColorManager.primary,
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF1E1E24) : AppColors.primary,
+        backgroundColor: ColorManager.primary,
         elevation: 0,
         title: Text(
           '👦 Child Dashboard',
-          style: GoogleFonts.outfit(
+          style: StylesManager.lableLine().copyWith(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: ColorManager.white,
             fontSize: 20.sp,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
+            icon: Icon(Icons.swap_horiz_rounded, color: ColorManager.white),
             tooltip: 'Switch to Parent Mode',
             onPressed: () {
               context.read<AuthBloc>().add(const AuthSwitchRole(role: 'parent'));
             },
           ),
           IconButton(
-            icon: const Icon(Icons.logout_rounded, color: Colors.white),
+            icon: Icon(Icons.logout_rounded, color: ColorManager.white),
             tooltip: 'Log Out',
             onPressed: () async {
               context.read<AuthBloc>().add(AuthLogoutRequested());
@@ -208,8 +198,8 @@ class _ChildDashboardState extends State<ChildDashboard> {
           if (state is ChildHistoryError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.error,
+                content: Text(state.message, style: StylesManager.lableLine().copyWith(color: ColorManager.white)),
+                backgroundColor: ColorManager.error,
                 behavior: SnackBarBehavior.floating,
               ),
             );
@@ -220,22 +210,20 @@ class _ChildDashboardState extends State<ChildDashboard> {
           final visitedUrls = state is ChildHistoryLoaded ? state.urls : <String>[];
 
           return Padding(
-            padding: EdgeInsets.all(16.r),
+            padding: const EdgeInsets.all(AppPadding.p16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Gamification Status Card
                 Container(
-                  padding: EdgeInsets.all(16.r),
-                  margin: EdgeInsets.only(bottom: 16.h),
+                  padding: const EdgeInsets.all(AppPadding.p16),
+                  margin: EdgeInsets.only(bottom: AppMargin.m16),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
-                    ),
-                    borderRadius: BorderRadius.circular(16.r),
+                    gradient: ColorManager.buttonColor,
+                    borderRadius: BorderRadius.circular(AppSize.s16),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF6366F1).withValues(alpha: 0.3),
+                        color: ColorManager.white.withOpacity(0.1),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -252,33 +240,25 @@ class _ChildDashboardState extends State<ChildDashboard> {
                             children: [
                               Text(
                                 'Safety Rank: Level ${_xp ~/ 50 + 1}',
-                                style: GoogleFonts.outfit(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18.sp,
-                                ),
+                                style: StylesManager.mediumLine().copyWith(color: ColorManager.white),
                               ),
                               Text(
                                 _xp ~/ 50 + 1 >= 3 ? 'Web Champion 🛡️' : 'Web Cadet 👶',
-                                style: GoogleFonts.outfit(
-                                  color: Colors.white70,
-                                  fontSize: 12.sp,
-                                ),
+                                style: StylesManager.litlleHintLine().copyWith(color: ColorManager.white),
                               ),
                             ],
                           ),
                           Container(
                             padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(12.r),
+                              color: ColorManager.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(AppSize.s12),
                             ),
                             child: Text(
                               '🔥 $_streak Streak',
-                              style: GoogleFonts.outfit(
-                                color: Colors.white,
+                              style: StylesManager.litlleHintLine().copyWith(
+                                color: ColorManager.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 12.sp,
                               ),
                             ),
                           ),
@@ -287,7 +267,7 @@ class _ChildDashboardState extends State<ChildDashboard> {
                       SizedBox(height: 12.h),
                       // XP Progress Bar
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(10.r),
+                        borderRadius: BorderRadius.circular(AppSize.s10),
                         child: LinearProgressIndicator(
                           value: (_xp % 50) / 50.0,
                           backgroundColor: Colors.white24,
@@ -301,11 +281,11 @@ class _ChildDashboardState extends State<ChildDashboard> {
                         children: [
                           Text(
                             '${_xp % 50}/50 XP',
-                            style: GoogleFonts.outfit(color: Colors.white70, fontSize: 11.sp),
+                            style: StylesManager.litlleHintLine().copyWith(color: ColorManager.white),
                           ),
                           Text(
                             '+10 XP for safe browsing',
-                            style: GoogleFonts.outfit(color: Colors.white70, fontSize: 11.sp),
+                            style: StylesManager.litlleHintLine().copyWith(color: ColorManager.white),
                           ),
                         ],
                       ),
@@ -316,11 +296,7 @@ class _ChildDashboardState extends State<ChildDashboard> {
                 // Simulated URL search bar
                 Text(
                   'Simulate Visiting a Website',
-                  style: GoogleFonts.outfit(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white70 : AppColors.selectedText,
-                  ),
+                  style: StylesManager.lableLine().copyWith(color: ColorManager.white),
                 ),
                 SizedBox(height: 12.h),
                 Row(
@@ -329,20 +305,18 @@ class _ChildDashboardState extends State<ChildDashboard> {
                       child: BuildTextField(
                         controller: _urlController,
                         hint: 'Enter domain (e.g. google.com)',
-                        backgroundColor: isDark ? const Color(0xFF1E1E24) : AppColors.surface,
-                        borderBackgroundColor: isDark ? const Color(0xFF2D2D35) : AppColors.border,
+                        backgroundColor: ColorManager.primary,
+                        borderBackgroundColor: ColorManager.grey,
+                        labelTextStyle: StylesManager.lableLine().copyWith(color: ColorManager.white),
+                        cursorColor: ColorManager.white,
                       ),
                     ),
                     SizedBox(width: 12.w),
-                    CustomButton(
+                    MainAppButton(
                       text: 'Go',
-                      isLoading: isLoading,
-                      onPressed: isLoading ? null : _addCustomUrl,
-                      height: 52.h,
+                      textStyle: StylesManager.mediumLine(),
+                      onTap: isLoading ? () {} : _addCustomUrl,
                       width: 70.w,
-                      backgroundColor: const Color(0xFF6366F1),
-                      textColor: Colors.white,
-                      borderRadius: 12.r,
                     ),
                   ],
                 ),
@@ -351,11 +325,7 @@ class _ChildDashboardState extends State<ChildDashboard> {
                 // Preset Buttons
                 Text(
                   'Quick Preset Simulation Chips',
-                  style: GoogleFonts.outfit(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white54 : AppColors.textSecondary,
-                  ),
+                  style: StylesManager.descriptionLine().copyWith(color: ColorManager.white),
                 ),
                 SizedBox(height: 10.h),
                 Wrap(
@@ -365,38 +335,38 @@ class _ChildDashboardState extends State<ChildDashboard> {
                     _buildQuickPreset(
                       'Wikipedia',
                       'https://en.wikipedia.org/wiki/Flutter_(software)',
-                      Colors.green.shade50,
-                      Colors.green.shade700,
+                      ColorManager.grey.withOpacity(0.3),
+                      ColorManager.white,
                     ),
                     _buildQuickPreset(
                       'Duolingo',
                       'https://www.duolingo.com',
-                      Colors.green.shade50,
-                      Colors.green.shade700,
+                      ColorManager.grey.withOpacity(0.3),
+                      ColorManager.white,
                     ),
                     _buildQuickPreset(
                       'Khan Academy',
                       'https://www.khanacademy.org',
-                      Colors.green.shade50,
-                      Colors.green.shade700,
+                      ColorManager.grey.withOpacity(0.3),
+                      ColorManager.white,
                     ),
                     _buildQuickPreset(
                       'Scratch MIT',
                       'https://www.scratch.mit.edu',
-                      Colors.green.shade50,
-                      Colors.green.shade700,
+                      ColorManager.grey.withOpacity(0.3),
+                      ColorManager.white,
                     ),
                     _buildQuickPreset(
                       'Slots 🎰 (Unsafe)',
                       'https://www.freeonlinegamblingweb.com/slots',
-                      AppColors.redWhite,
-                      AppColors.error,
+                      ColorManager.error.withOpacity(0.2),
+                      ColorManager.error,
                     ),
                     _buildQuickPreset(
                       'Violent Gory Games 💥 (Unsafe)',
                       'https://www.badsite-violent-games.com/gory-scenes',
-                      AppColors.redWhite,
-                      AppColors.error,
+                      ColorManager.error.withOpacity(0.2),
+                      ColorManager.error,
                     ),
                   ],
                 ),
@@ -408,24 +378,17 @@ class _ChildDashboardState extends State<ChildDashboard> {
                   children: [
                     Text(
                       'Browsing History Stream',
-                      style: GoogleFonts.outfit(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white70 : AppColors.selectedText,
-                      ),
+                      style: StylesManager.lableLine().copyWith(color: ColorManager.white),
                     ),
                     if (visitedUrls.isNotEmpty)
                       TextButton.icon(
                         onPressed: isLoading ? null : _clearHistory,
-                        icon: const Icon(Icons.delete_outline, size: 18),
+                        icon: Icon(Icons.delete_outline, size: 18.sp, color: ColorManager.error),
                         label: Text(
                           'Clear All',
-                          style: GoogleFonts.outfit(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: StylesManager.lableLine().copyWith(color: ColorManager.error),
                         ),
                         style: TextButton.styleFrom(
-                          foregroundColor: AppColors.error,
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -443,15 +406,12 @@ class _ChildDashboardState extends State<ChildDashboard> {
                               Icon(
                                 Icons.history_rounded,
                                 size: 48.sp,
-                                color: AppColors.textDisabled,
+                                color: ColorManager.grey,
                               ),
                               SizedBox(height: 12.h),
                               Text(
                                 'No URLs visited yet',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 15.sp,
-                                  color: AppColors.textSecondary,
-                                ),
+                                style: StylesManager.descriptionLine().copyWith(color: ColorManager.white),
                               ),
                             ],
                           ),
@@ -466,49 +426,43 @@ class _ChildDashboardState extends State<ChildDashboard> {
                                 url.contains('badsite') ||
                                 url.contains('violent');
                             return Card(
-                              color: isDark ? const Color(0xFF1E1E24) : AppColors.surface,
+                              color: ColorManager.primary,
                               elevation: 0,
                               margin: EdgeInsets.symmetric(vertical: 6.h),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.r),
+                                borderRadius: BorderRadius.circular(AppSize.s12),
                                 side: BorderSide(
-                                  color: isDark 
-                                      ? const Color(0xFF2D2D35) 
-                                      : AppColors.border.withValues(alpha: 0.3),
+                                  color: ColorManager.grey,
                                 ),
                               ),
                               child: ListTile(
                                 leading: CircleAvatar(
                                   backgroundColor: isHarmfulDemo
-                                      ? AppColors.redWhite
-                                      : AppColors.greenWhite,
+                                      ? ColorManager.error.withOpacity(0.2)
+                                      : ColorManager.white.withOpacity(0.1),
                                   child: Icon(
                                     isHarmfulDemo
                                         ? Icons.report_problem_rounded
                                         : Icons.link_rounded,
                                     color: isHarmfulDemo
-                                        ? AppColors.error
-                                        : const Color(0xFF6366F1),
+                                        ? ColorManager.error
+                                        : ColorManager.white,
                                   ),
                                 ),
                                 title: Text(
                                   url,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                  style: StylesManager.lableLine().copyWith(color: ColorManager.white),
                                 ),
                                 subtitle: Text(
                                   isHarmfulDemo
                                       ? 'Flagged content simulation'
                                       : 'Standard browsing traffic',
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 12.sp,
+                                  style: StylesManager.litlleHintLine().copyWith(
                                     color: isHarmfulDemo
-                                        ? AppColors.error
-                                        : AppColors.textSecondary,
+                                        ? ColorManager.error
+                                        : ColorManager.grey,
                                   ),
                                 ),
                               ),
@@ -529,16 +483,13 @@ class _ChildDashboardState extends State<ChildDashboard> {
       backgroundColor: bg,
       label: Text(
         label,
-        style: GoogleFonts.outfit(
-          color: text,
-          fontWeight: FontWeight.w600,
-          fontSize: 12.sp,
-        ),
+        style: StylesManager.litlleHintLine().copyWith(color: text),
       ),
       onPressed: () => _addQuickUrl(url, label),
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 4.h),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.r),
+        borderRadius: BorderRadius.circular(AppSize.s8),
+        side: BorderSide(color: ColorManager.grey.withOpacity(0.5))
       ),
     );
   }
