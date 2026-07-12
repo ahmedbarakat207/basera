@@ -61,9 +61,21 @@ class AccessibilityMonitoringService {
 
         // 2. Child nodes text (critical for Chrome url bar)
         try {
-          final nodesText = event.nodesText;
+          dynamic dynEvent = event;
+          final nodesText = dynEvent.nodesText;
           if (nodesText != null) {
-            texts.addAll(nodesText.whereType<String>());
+            for (var text in nodesText) {
+              if (text != null) texts.add(text.toString());
+            }
+          }
+          // Fallback if nodesText isn't available but subNodes is
+          final subNodes = dynEvent.subNodes;
+          if (subNodes != null && subNodes is List) {
+            for (var node in subNodes) {
+              if (node != null && node.text != null) {
+                texts.add(node.text.toString());
+              }
+            }
           }
         } catch (_) {}
 

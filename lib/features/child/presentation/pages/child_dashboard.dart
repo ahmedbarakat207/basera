@@ -65,12 +65,6 @@ class _ChildDashboardState extends State<ChildDashboard> with WidgetsBindingObse
     } catch (_) {}
   }
 
-  @override
-  void dispose() {
-    _urlController.dispose();
-    super.dispose();
-  }
-
   Future<void> _loadGamification() async {
     try {
       final prefs = await SharedPreferences.getInstance();
