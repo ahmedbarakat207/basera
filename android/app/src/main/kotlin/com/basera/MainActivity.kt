@@ -1,4 +1,4 @@
-package com.example.basera
+package com.basera
 
 import io.flutter.embedding.android.FlutterActivity
 
