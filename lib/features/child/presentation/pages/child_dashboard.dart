@@ -13,6 +13,7 @@ import 'package:basera/features/child/presentation/bloc/child_state.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_event.dart';
 
+
 class ChildDashboard extends StatefulWidget {
   const ChildDashboard({super.key});
 
@@ -188,11 +189,8 @@ class _ChildDashboardState extends State<ChildDashboard> {
           IconButton(
             icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
             tooltip: 'Switch to Parent Mode',
-            onPressed: () async {
-              await ChildHistoryService.instance.setUserRole('parent');
-              if (context.mounted) {
-                Navigator.of(context).pushReplacementNamed(Routes.mainRoute);
-              }
+            onPressed: () {
+              context.read<AuthBloc>().add(const AuthSwitchRole(role: 'parent'));
             },
           ),
           IconButton(

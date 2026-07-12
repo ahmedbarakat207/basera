@@ -37,3 +37,12 @@ class AuthSignUpRequested extends AuthEvent {
 }
 
 class AuthLogoutRequested extends AuthEvent {}
+
+class AuthSwitchRole extends AuthEvent {
+  final String role; // 'parent' or 'child'
+
+  const AuthSwitchRole({required this.role});
+
+  @override
+  List<Object?> get props => [role];
+}

@@ -12,6 +12,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLoginRequested>(_onLogin);
     on<AuthSignUpRequested>(_onSignUp);
     on<AuthLogoutRequested>(_onLogout);
+    on<AuthSwitchRole>(_onSwitchRole);
   }
 
   Future<void> _onCheckStatus(AuthCheckRequested event, Emitter<AuthState> emit) async {
@@ -60,6 +61,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e) {
       emit(AuthError(message: _mapErrorToMessage(e)));
     }
+  }
+
+  Future<void> _onSwitchRole(AuthSwitchRole event, Emitter<AuthState> emit) async {
+    await ChildHistoryService.instance.setUserRole(event.role);
+    emit(Authenticated(role: event.role));
   }
 
   String _mapErrorToMessage(dynamic error) {

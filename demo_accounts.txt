@@ -2,27 +2,60 @@
       BASERA SAFETY - DEMO ACCOUNTS
 =========================================
 
-To demonstrate the AI child-safety link analysis, use the following credentials on the login screen.
+To test CROSS-DEVICE real-time monitoring, use the following credentials.
+Both accounts must already be registered in Firebase (check Firebase Console).
 
 -----------------------------------------
-1. PARENT ACCOUNT (Monitor Control)
+1. PARENT ACCOUNT (Monitor & Control)
 -----------------------------------------
-Email: parent@basera.com 
+Email:    parent@basera.com
 Password: parentpassword123
-Role: Parent
+Role:     Parent
 
 -----------------------------------------
 2. CHILD ACCOUNT (Browsing Simulation)
 -----------------------------------------
-Email: child@basera.com
+Email:    child@basera.com
 Password: childpassword123
-Role: Child
+Role:     Child
 
------------------------------------------
-HOW TO TEST:
-1. Launch the application.
-2. If you are not on the Sign In screen, click "Sign In" at the bottom of the Sign Up screen.
-3. Log in as the Child first to simulate browsing. You can click on the preset buttons (Wikipedia, Duolingo, Slots, etc.) or type custom URLs to populate the child's feed.
-4. Log out or click "Switch Mode".
-5. Log in as the Parent.
-6. Click "Analyze with Groq AI" to trigger safety reports on the child's browsing history.
+=========================================
+  HOW TO TEST CROSS-DEVICE MONITORING
+=========================================
+
+SETUP (one-time):
+─────────────────
+1. On Phone A — sign in as CHILD (child@basera.com / childpassword123)
+2. On Phone B — sign in as PARENT (parent@basera.com / parentpassword123)
+
+LINK CHILD TO PARENT:
+─────────────────────
+3. On Phone B (parent) — tap the 👤+ icon in the top-right of the AppBar
+4. In the "Link Child Account" dialog:
+     Child's Email:    child@basera.com
+     Child's Password: childpassword123
+5. Tap "Link Account" — you'll see the child appear in the dropdown selector
+
+SIMULATE BROWSING (Phone A - Child):
+─────────────────────────────────────
+6. On Phone A, tap any of the preset chips:
+     ✅ Safe sites:   Wikipedia, Duolingo, Khan Academy, Scratch
+     ⚠️ Unsafe sites: Slots 🎰, Violent Games 💥
+   Or type any URL in the field and tap "Go"
+
+MONITOR IN REAL-TIME (Phone B - Parent):
+─────────────────────────────────────────
+7. On Phone B, the URLs appear in "History Feed" automatically (Firestore stream)
+8. Tap "Analyze with Iris AI" to generate an AI safety report on those URLs
+9. Tap the bell 🔔 icon to see flagged content alerts
+10. Switch to "Safety Charts" tab to view risk trend graphs
+
+=========================================
+  SINGLE-DEVICE DEMO (Offline/Local)
+=========================================
+If Firebase is unavailable, the app falls back to local SQLite storage:
+- Visits are saved locally on the device
+- Switch between Parent/Child mode using the ⇄ icon in the AppBar
+- Demo data is pre-populated automatically
+
+=========================================

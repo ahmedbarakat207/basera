@@ -29,6 +29,8 @@ class ParentLoaded extends ParentState {
   final SafetyReport? latestReport;
   final String filterQuery;
   final bool isAnalyzing;
+  final bool isLinking;
+  final String? linkError;
 
   const ParentLoaded({
     required this.children,
@@ -38,6 +40,8 @@ class ParentLoaded extends ParentState {
     this.latestReport,
     this.filterQuery = '',
     this.isAnalyzing = false,
+    this.isLinking = false,
+    this.linkError,
   });
 
   ParentLoaded copyWith({
@@ -46,17 +50,23 @@ class ParentLoaded extends ParentState {
     List<String>? allVisitedUrls,
     List<String>? filteredVisitedUrls,
     SafetyReport? latestReport,
+    bool clearReport = false,
     String? filterQuery,
     bool? isAnalyzing,
+    bool? isLinking,
+    String? linkError,
+    bool clearLinkError = false,
   }) {
     return ParentLoaded(
       children: children ?? this.children,
       selectedChildUid: selectedChildUid ?? this.selectedChildUid,
       allVisitedUrls: allVisitedUrls ?? this.allVisitedUrls,
       filteredVisitedUrls: filteredVisitedUrls ?? this.filteredVisitedUrls,
-      latestReport: latestReport ?? this.latestReport,
+      latestReport: clearReport ? null : (latestReport ?? this.latestReport),
       filterQuery: filterQuery ?? this.filterQuery,
       isAnalyzing: isAnalyzing ?? this.isAnalyzing,
+      isLinking: isLinking ?? this.isLinking,
+      linkError: clearLinkError ? null : (linkError ?? this.linkError),
     );
   }
 
@@ -69,6 +79,8 @@ class ParentLoaded extends ParentState {
         latestReport,
         filterQuery,
         isAnalyzing,
+        isLinking,
+        linkError,
       ];
 }
 

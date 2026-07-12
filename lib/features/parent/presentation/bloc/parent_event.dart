@@ -56,3 +56,16 @@ class FilterUrls extends ParentEvent {
 }
 
 class ClearParentData extends ParentEvent {}
+
+class LinkChildAccount extends ParentEvent {
+  final String childEmail;
+  final String childPassword;
+
+  const LinkChildAccount({
+    required this.childEmail,
+    required this.childPassword,
+  });
+
+  @override
+  List<Object?> get props => [childEmail, childPassword];
+}

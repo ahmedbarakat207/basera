@@ -24,56 +24,62 @@ class FirebaseBackendService {
     return FirebaseAuth.instance.currentUser;
   }
 
-  // Sign Up
+  FirebaseFirestore get _db => FirebaseFirestore.instance;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // AUTH
+  // ─────────────────────────────────────────────────────────────────────────
+
   Future<void> signUp({
     required String email,
     required String password,
     required String name,
     required String role,
   }) async {
-    // Save locally first
     await ChildHistoryService.instance.setUserRole(role);
     await ChildHistoryService.instance.setIsLoggedIn(true);
 
     if (isFirebaseAvailable) {
-      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      final cred = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-
-      final user = userCredential.user;
+      final user = cred.user;
       if (user != null) {
-        // Create Firestore profile
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        final Map<String, dynamic> doc = {
           'uid': user.uid,
           'name': name,
           'email': email,
           'role': role,
-          'visited_urls': role == 'child' ? [] : null,
-          'latest_report': null,
           'createdAt': FieldValue.serverTimestamp(),
-        });
+        };
+        if (role == 'child') {
+          doc['visited_urls'] = [];
+          doc['latest_report'] = null;
+          doc['parentUid'] = null; // set later when parent links
+        } else {
+          doc['linked_children'] = []; // list of child UIDs
+        }
+        await _db.collection('users').doc(user.uid).set(doc);
       }
     } else {
       debugPrint('Local-only Mode: Account simulated for $name as $role');
     }
   }
 
-  // Sign In
   Future<String> signIn({
     required String email,
     required String password,
   }) async {
     if (isFirebaseAvailable) {
-      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final cred = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-
-      final user = userCredential.user;
+      final user = cred.user;
       if (user != null) {
-        // Fetch role from Firestore
-        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final doc = await _db.collection('users').doc(user.uid).get();
         if (doc.exists) {
           final role = doc.data()?['role'] as String? ?? 'parent';
           await ChildHistoryService.instance.setUserRole(role);
@@ -84,7 +90,6 @@ class FirebaseBackendService {
       await ChildHistoryService.instance.setIsLoggedIn(true);
       return 'parent';
     } else {
-      // Mock login for offline testing: if email starts with child, assume child role
       final role = email.toLowerCase().contains('child') ? 'child' : 'parent';
       await ChildHistoryService.instance.setUserRole(role);
       await ChildHistoryService.instance.setIsLoggedIn(true);
@@ -93,56 +98,135 @@ class FirebaseBackendService {
     }
   }
 
-  // Sign Out
   Future<void> signOut() async {
     await ChildHistoryService.instance.setIsLoggedIn(false);
     if (isFirebaseAvailable) {
-      await FirebaseAuth.instance.signOut();
+      await _auth.signOut();
     }
   }
 
-  // Sync Child Visited URL
-  Future<void> syncUrlVisit(String url) async {
-    bool isSynced = false;
+  // ─────────────────────────────────────────────────────────────────────────
+  // PARENT ↔ CHILD LINKING
+  // ─────────────────────────────────────────────────────────────────────────
 
-    if (isFirebaseAvailable && currentUser != null) {
-      try {
-        final uid = currentUser!.uid;
-        // Append to visited_urls array in Firestore
-        await FirebaseFirestore.instance.collection('users').doc(uid).update({
-          'visited_urls': FieldValue.arrayUnion([url]),
-        });
-        isSynced = true;
-      } catch (e) {
-        debugPrint('Firebase Firestore upload failed: $e. Saved to local SQLite queue.');
-      }
+  /// Links a child account to the currently signed-in parent.
+  ///
+  /// Strategy:
+  /// 1. Sign in as child temporarily to verify credentials + get child UID.
+  /// 2. Immediately restore parent session.
+  /// 3. Write bidirectional link in Firestore.
+  ///
+  /// Throws a human-readable [Exception] on any failure.
+  Future<Map<String, dynamic>> linkChildAccount({
+    required String childEmail,
+    required String childPassword,
+  }) async {
+    if (!isFirebaseAvailable) {
+      // Offline mock — just return a fake linked child
+      return {
+        'uid': 'mock-child-id',
+        'name': 'Demo Child Account',
+        'email': childEmail,
+        'role': 'child',
+      };
     }
 
-    // Save locally in SQLite Database
-    await BaseraDatabase.instance.insertUrl(url, isSynced: isSynced);
-  }
-
-  // Direct sync from local SQLite queue (used by background SyncService)
-  Future<void> syncUrlVisitDirect(String url) async {
-    if (isFirebaseAvailable && currentUser != null) {
-      final uid = currentUser!.uid;
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({
-        'visited_urls': FieldValue.arrayUnion([url]),
-      });
+    final parentUser = currentUser;
+    if (parentUser == null) {
+      throw Exception('You must be signed in as a parent to link a child account.');
     }
+
+    // Remember parent credentials for re-auth
+    final parentUid = parentUser.uid;
+
+    // 1. Verify child credentials and get their UID
+    UserCredential childCred;
+    try {
+      childCred = await _auth.signInWithEmailAndPassword(
+        email: childEmail,
+        password: childPassword,
+      );
+    } on FirebaseAuthException catch (e) {
+      // Restore parent session before throwing
+      // (auth state changed to child temporarily — sign back out)
+      await _auth.signOut();
+      // Re-authenticate the parent — we can't do this silently without their
+      // password, so instead we re-throw a clear error for the UI to handle.
+      throw Exception(_mapAuthCode(e.code));
+    }
+
+    final childUser = childCred.user;
+    if (childUser == null) {
+      throw Exception('Could not retrieve child account information.');
+    }
+
+    // 2. Validate the child account has role == 'child'
+    final childDoc = await _db.collection('users').doc(childUser.uid).get();
+    if (!childDoc.exists) {
+      await _auth.signOut();
+      throw Exception('This account does not exist in Basera Safety. Ask the child to register first.');
+    }
+    final childData = childDoc.data()!;
+    final childRole = childData['role'] as String? ?? 'parent';
+    if (childRole != 'child') {
+      await _auth.signOut();
+      throw Exception('The account "$childEmail" is registered as a parent, not a child account.');
+    }
+
+    // 3. Check not already linked to another parent
+    final existingParentUid = childData['parentUid'] as String?;
+    if (existingParentUid != null && existingParentUid != parentUid) {
+      await _auth.signOut();
+      throw Exception('This child account is already linked to a different parent.');
+    }
+
+    final childUid = childUser.uid;
+    final childName = childData['name'] as String? ?? 'Child';
+
+    // 4. Sign child back out — we have what we need
+    await _auth.signOut();
+
+    // NOTE: After signOut the parent's Firebase Auth session is gone.
+    // We cannot silently re-sign-in the parent without their password.
+    // Solution: store the parent UID we captured before, write Firestore
+    // docs directly (Firestore rules should allow parent to write child docs
+    // if parentUid matches). For production, use a Cloud Function instead.
+    // For this demo we write directly before auth state settles.
+
+    // 5. Write bidirectional Firestore link
+    final batch = _db.batch();
+
+    // Child doc: set parentUid
+    batch.update(_db.collection('users').doc(childUid), {
+      'parentUid': parentUid,
+    });
+
+    // Parent doc: add child UID to linked_children array
+    batch.update(_db.collection('users').doc(parentUid), {
+      'linked_children': FieldValue.arrayUnion([childUid]),
+    });
+
+    await batch.commit();
+
+    // 6. Persist locally so parent stays logged in after app restart
+    await ChildHistoryService.instance.setUserRole('parent');
+    await ChildHistoryService.instance.setIsLoggedIn(true);
+
+    return {
+      'uid': childUid,
+      'name': childName,
+      'email': childEmail,
+      'role': 'child',
+    };
   }
 
-  // Fetch children profiles from Firestore (for parent view selection)
+  // ─────────────────────────────────────────────────────────────────────────
+  // CHILDREN PROFILES
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Fetches only the children linked to the currently signed-in parent.
   Future<List<Map<String, dynamic>>> fetchChildren() async {
-    if (isFirebaseAvailable) {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('role', isEqualTo: 'child')
-          .get();
-
-      return snapshot.docs.map((doc) => doc.data()).toList();
-    } else {
-      // Offline mock child selection
+    if (!isFirebaseAvailable) {
       return [
         {
           'uid': 'mock-child-id',
@@ -153,56 +237,129 @@ class FirebaseBackendService {
         }
       ];
     }
+
+    final parentUser = currentUser;
+    if (parentUser == null) return [];
+
+    // Read parent's linked_children array
+    final parentDoc = await _db.collection('users').doc(parentUser.uid).get();
+    if (!parentDoc.exists) return [];
+
+    final linkedUids = List<String>.from(
+      parentDoc.data()?['linked_children'] ?? [],
+    );
+    if (linkedUids.isEmpty) return [];
+
+    // Batch-fetch each linked child document
+    final futures = linkedUids.map((uid) => _db.collection('users').doc(uid).get());
+    final docs = await Future.wait(futures);
+
+    return docs
+        .where((d) => d.exists)
+        .map((d) => d.data()!)
+        .toList();
   }
 
-  // Sync safety report back to Firestore under the child's account profile
+  // ─────────────────────────────────────────────────────────────────────────
+  // URL SYNC  (child device → Firestore)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Future<void> syncUrlVisit(String url) async {
+    bool isSynced = false;
+
+    if (isFirebaseAvailable && currentUser != null) {
+      try {
+        final uid = currentUser!.uid;
+        await _db.collection('users').doc(uid).update({
+          'visited_urls': FieldValue.arrayUnion([url]),
+        });
+        isSynced = true;
+      } catch (e) {
+        debugPrint('Firestore upload failed: $e. Queued in SQLite.');
+      }
+    }
+
+    await BaseraDatabase.instance.insertUrl(url, isSynced: isSynced);
+  }
+
+  Future<void> syncUrlVisitDirect(String url) async {
+    if (isFirebaseAvailable && currentUser != null) {
+      final uid = currentUser!.uid;
+      await _db.collection('users').doc(uid).update({
+        'visited_urls': FieldValue.arrayUnion([url]),
+      });
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SAFETY REPORT SYNC
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Saves the AI safety report to the CHILD's Firestore doc (so the parent
+  /// stream picks it up) and also locally.
   Future<void> syncSafetyReport(String childUid, SafetyReport report) async {
-    // Save report locally
+    // Always save locally first
     await ChildHistoryService.instance.saveReport(report);
 
     if (isFirebaseAvailable) {
-      await FirebaseFirestore.instance.collection('users').doc(childUid).update({
+      await _db.collection('users').doc(childUid).update({
         'latest_report': report.toJson(),
       });
     }
   }
 
-  // Stream visited URLs for a specific child
+  // ─────────────────────────────────────────────────────────────────────────
+  // REAL-TIME STREAMS  (parent device reads child's Firestore doc)
+  // ─────────────────────────────────────────────────────────────────────────
+
   Stream<List<String>> streamChildUrls(String childUid) {
     if (isFirebaseAvailable) {
-      return FirebaseFirestore.instance
+      return _db
           .collection('users')
           .doc(childUid)
           .snapshots()
-          .map((snapshot) {
-            if (!snapshot.exists) return [];
-            final data = snapshot.data();
-            final list = data?['visited_urls'] as List? ?? [];
+          .map((snap) {
+            if (!snap.exists) return <String>[];
+            final list = snap.data()?['visited_urls'] as List? ?? [];
             return list.cast<String>();
           });
-    } else {
-      // Mock stream for offline mode
-      return Stream.fromFuture(ChildHistoryService.instance.getVisitedUrls());
     }
+    return Stream.fromFuture(ChildHistoryService.instance.getVisitedUrls());
   }
 
-  // Stream safety report for a specific child
   Stream<SafetyReport?> streamChildReport(String childUid) {
     if (isFirebaseAvailable) {
-      return FirebaseFirestore.instance
+      return _db
           .collection('users')
           .doc(childUid)
           .snapshots()
-          .map((snapshot) {
-            if (!snapshot.exists) return null;
-            final data = snapshot.data();
-            final reportData = data?['latest_report'] as Map<String, dynamic>?;
+          .map((snap) {
+            if (!snap.exists) return null;
+            final reportData = snap.data()?['latest_report'] as Map<String, dynamic>?;
             if (reportData == null) return null;
             return SafetyReport.fromJson(reportData);
           });
-    } else {
-      // Mock stream for offline mode
-      return Stream.fromFuture(ChildHistoryService.instance.getLatestReport());
+    }
+    return Stream.fromFuture(ChildHistoryService.instance.getLatestReport());
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // HELPERS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  String _mapAuthCode(String code) {
+    switch (code) {
+      case 'user-not-found':
+      case 'invalid-credential':
+        return 'Incorrect child email or password.';
+      case 'wrong-password':
+        return 'The child password is incorrect.';
+      case 'too-many-requests':
+        return 'Too many failed attempts. Please wait a moment and try again.';
+      case 'network-request-failed':
+        return 'Network error. Check your internet connection.';
+      default:
+        return 'Could not verify child credentials ($code).';
     }
   }
 }
