@@ -54,11 +54,19 @@ class _ParentDashboardState extends State<ParentDashboard> {
         return BlocProvider.value(
           value: context.read<ParentBloc>(),
           child: BlocConsumer<ParentBloc, ParentState>(
+            listenWhen: (previous, current) {
+              return previous is ParentLoaded &&
+                     previous.isLinking == true &&
+                     current is ParentLoaded &&
+                     current.isLinking == false;
+            },
             listener: (ctx, state) {
-              if (state is ParentLoaded && !state.isLinking) {
+              if (state is ParentLoaded) {
                 if (state.linkError == null) {
                   // Success — close dialog
-                  Navigator.of(dialogCtx).pop();
+                  if (Navigator.of(dialogCtx).canPop()) {
+                    Navigator.of(dialogCtx).pop();
+                  }
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
