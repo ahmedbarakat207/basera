@@ -331,6 +331,36 @@ class FirebaseBackendService {
     }
   }
 
+  Future<bool> syncDownChildHistory() async {
+    if (!isFirebaseAvailable || currentUser == null) return false;
+
+    try {
+      String targetUid = currentUser!.uid;
+      final parentDoc = await _db.collection('users').doc(targetUid).get();
+      final linked = parentDoc.data()?['linked_children'] as List?;
+      if (linked != null && linked.isNotEmpty) {
+        targetUid = linked.first.toString();
+      }
+
+      final childDoc = await _db.collection('users').doc(targetUid).get();
+      final firebaseUrls = List<String>.from(childDoc.data()?['visited_urls'] ?? []);
+      
+      final localUrls = await BaseraDatabase.instance.getVisitedUrls();
+      bool hasChanges = false;
+      
+      for (final url in firebaseUrls.reversed) {
+        if (!localUrls.contains(url)) {
+          await BaseraDatabase.instance.insertUrl(url, isSynced: true);
+          hasChanges = true;
+        }
+      }
+      return hasChanges;
+    } catch (e) {
+      debugPrint('Error syncing down child history: $e');
+      return false;
+    }
+  }
+
   Future<void> clearHistory() async {
     if (isFirebaseAvailable && currentUser != null) {
       try {
@@ -346,6 +376,7 @@ class FirebaseBackendService {
         });
       } catch (e) {
         debugPrint('Failed to clear Firestore history: $e');
+        throw Exception('Must be online to clear history across all devices.');
       }
     }
   }

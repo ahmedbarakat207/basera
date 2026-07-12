@@ -19,8 +19,22 @@ class ChildBloc extends Bloc<ChildEvent, ChildState> {
   Future<void> _onLoadHistory(LoadChildHistory event, Emitter<ChildState> emit) async {
     emit(ChildHistoryLoading());
     try {
-      final urls = await BaseraDatabase.instance.getVisitedUrls();
-      emit(ChildHistoryLoaded(urls: urls));
+      // 1. Load immediately from local DB
+      final localUrls = await BaseraDatabase.instance.getVisitedUrls();
+      emit(ChildHistoryLoaded(urls: localUrls));
+
+      // 2. Sync down any missing URLs from Firebase in the background
+      final hasChanges = await _backendService.syncDownChildHistory();
+      if (hasChanges) {
+        final newUrls = await BaseraDatabase.instance.getVisitedUrls();
+        // Preserve any analyzing states if they exist
+        final currentState = state is ChildHistoryLoaded ? state as ChildHistoryLoaded : null;
+        emit(ChildHistoryLoaded(
+          urls: newUrls,
+          isAnalyzing: currentState?.isAnalyzing ?? false,
+          isLatestVisitHarmful: currentState?.isLatestVisitHarmful,
+        ));
+      }
     } catch (e) {
       emit(ChildHistoryError(message: 'Failed to load local history: ${e.toString()}'));
     }
