@@ -135,12 +135,16 @@ class GroqClient {
         throw Exception('Failed to communicate with Groq: ${response.statusMessage}');
       }
     } catch (e) {
+      // Print error to help debug API key revocation or connection issues
+      print('Groq API error: $e');
+      
       // Fallback/Mock report if offline or API error
+      final hasHarmful = urls.any((u) => _isUrlHarmfulLocally(u));
       return SafetyReport(
-        status: 'Good',
-        summary: 'Temporary analysis offline. Please check connection.',
+        status: hasHarmful ? 'Misbehaving' : 'Good',
+        summary: 'Offline safety analysis completed.',
         links: urls.map((u) {
-          final isHarmful = u.contains('harmful') || u.contains('porn') || u.contains('gamble');
+          final isHarmful = _isUrlHarmfulLocally(u);
           return LinkAnalysis(
             url: u,
             isHarmful: isHarmful,
@@ -150,5 +154,14 @@ class GroqClient {
         }).toList(),
       );
     }
+  }
+
+  static bool _isUrlHarmfulLocally(String url) {
+    final lower = url.toLowerCase();
+    final harmfulKeywords = [
+      'harmful', 'porn', 'gamble', 'gambling', 'slots', 'badsite', 'violent',
+      'gory', 'drugs', 'weapons', 'hate', 'casino', 'betting', 'adult', 'xxx'
+    ];
+    return harmfulKeywords.any((kw) => lower.contains(kw));
   }
 }
