@@ -34,6 +34,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       );
       emit(Authenticated(role: role));
     } catch (e) {
+      final strErr = e.toString();
+      
+      // Auto-create demo accounts if they don't exist in a new Firebase project
+      if ((event.email == 'parent@basera.com' || event.email == 'child@basera.com') && 
+          (strErr.contains('user-not-found') || strErr.contains('invalid-credential') || strErr.contains('INVALID_LOGIN_CREDENTIALS'))) {
+        try {
+          final role = event.email == 'parent@basera.com' ? 'parent' : 'child';
+          final name = event.email == 'parent@basera.com' ? 'Demo Parent' : 'Demo Child';
+          await _authService.signUp(
+            email: event.email,
+            password: event.password,
+            name: name,
+            role: role,
+          );
+          emit(Authenticated(role: role));
+          return;
+        } catch (e2) {
+          emit(AuthError(message: _mapErrorToMessage(e2)));
+          return;
+        }
+      }
+
       emit(AuthError(message: _mapErrorToMessage(e)));
     }
   }
