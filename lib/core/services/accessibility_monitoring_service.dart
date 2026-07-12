@@ -47,17 +47,25 @@ class AccessibilityMonitoringService {
           event.packageName == 'com.android.browser' ||
           event.packageName == 'org.mozilla.firefox') {
         
-        // event.text can be String or List depending on the package version.
-        // We'll safely convert it.
-        final rawText = event.text;
         List<String> texts = [];
+        
+        // 1. Root event text
+        final rawText = event.text;
         if (rawText is List) {
           for (var e in (rawText as List)) {
             if (e != null) texts.add(e.toString());
           }
         } else if (rawText is String) {
-          texts = [rawText];
+          texts.add(rawText);
         }
+
+        // 2. Child nodes text (critical for Chrome url bar)
+        try {
+          final nodesText = event.nodesText;
+          if (nodesText != null) {
+            texts.addAll(nodesText.whereType<String>());
+          }
+        } catch (_) {}
 
         for (final text in texts) {
           final trimmed = text.trim();
