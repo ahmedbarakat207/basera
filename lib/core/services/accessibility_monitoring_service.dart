@@ -47,7 +47,7 @@ class AccessibilityMonitoringService {
         final rawText = event.text;
         List<String> texts = [];
         if (rawText is List) {
-          for (var e in rawText) {
+          for (var e in (rawText as List)) {
             if (e != null) texts.add(e.toString());
           }
         } else if (rawText is String) {
