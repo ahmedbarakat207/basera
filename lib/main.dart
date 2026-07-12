@@ -86,10 +86,10 @@ class BasseraApp extends StatelessWidget {
             return MaterialApp(
               debugShowCheckedModeBanner: false,
               theme: ThemeData(
-                brightness: isDark ? Brightness.dark : Brightness.light,
-                scaffoldBackgroundColor: isDark ? const Color(0xFF121214) : const Color(0xFFF8FAFC),
+                brightness: Brightness.dark,
+                scaffoldBackgroundColor: const Color(0xFF121214),
                 primaryColor: const Color(0xFF6366F1),
-                cardColor: isDark ? const Color(0xFF1E1E24) : Colors.white,
+                cardColor: const Color(0xFF1E1E24),
               ),
               home: isLoggedIn ? const DashboardWrapperScreen() : const SignUpScreen(),
               onGenerateRoute: RouteGenerator.getRoute,

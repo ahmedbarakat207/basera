@@ -409,15 +409,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 tooltip: 'Link Child Account',
                 onPressed: _showLinkChildDialog,
               ),
-              // Theme toggle
-              IconButton(
-                icon: const Icon(
-                  Icons.wb_sunny_rounded,
-                  color: Colors.white,
-                ),
-                tooltip: 'Light Mode',
-                onPressed: () => context.read<ThemeCubit>().toggleTheme(),
-              ),
+              // Theme toggle removed for pure dark mode
               // Switch to child mode
               IconButton(
                 icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
@@ -564,7 +556,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
             icon: const Icon(Icons.person_add_alt_1_rounded),
             label: Text(
               'Link Child Account',
-              style: StylesManager.lableLine().copyWith(fontWeight: FontWeight.bold, color: ColorManager.white),
+              style: StylesManager.lableLine().copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF6366F1)),
             ),
             onPressed: _showLinkChildDialog,
           ),
