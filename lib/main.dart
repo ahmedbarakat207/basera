@@ -8,6 +8,7 @@ import 'package:basera/core/utils/child_history_service.dart';
 import 'package:basera/core/services/firebase_backend_service.dart';
 import 'package:basera/core/services/basera_database.dart';
 import 'package:basera/core/services/sync_service.dart';
+import 'package:basera/core/services/firebase_messaging_service.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_event.dart';
 import 'package:basera/features/child/presentation/bloc/child_bloc.dart';

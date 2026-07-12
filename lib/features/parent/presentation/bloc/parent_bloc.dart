@@ -35,6 +35,7 @@ class ParentBloc extends Bloc<ParentEvent, ParentState> {
   ) async {
     emit(ParentLoading());
     try {
+      await _backendService.updateFcmToken();
       final children = await _backendService.fetchChildren();
 
       if (children.isNotEmpty) {

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:basera/core/utils/child_history_service.dart';
 import 'package:basera/core/services/basera_database.dart';
 import 'package:basera/core/models/safety_report.dart';
+import 'package:basera/core/services/firebase_messaging_service.dart';
 
 class FirebaseBackendService {
   static final FirebaseBackendService instance = FirebaseBackendService._internal();
@@ -66,6 +67,7 @@ class FirebaseBackendService {
         await _db.collection('users').doc(user.uid).set(doc).timeout(const Duration(seconds: 10), onTimeout: () {
           throw Exception('Database operation timed out. Please check if Firestore is enabled in your Firebase console and security rules allow writes.');
         });
+        await updateFcmToken();
       }
     } else {
       debugPrint('Local-only Mode: Account simulated for $name as $role');
@@ -92,6 +94,7 @@ class FirebaseBackendService {
           final role = doc.data()?['role'] as String? ?? 'parent';
           await ChildHistoryService.instance.setUserRole(role);
           await ChildHistoryService.instance.setIsLoggedIn(true);
+          await updateFcmToken();
           return role;
         }
       }
@@ -110,6 +113,20 @@ class FirebaseBackendService {
     await ChildHistoryService.instance.setIsLoggedIn(false);
     if (isFirebaseAvailable) {
       await _auth.signOut();
+    }
+  }
+
+  Future<void> updateFcmToken() async {
+    if (!isFirebaseAvailable || currentUser == null) return;
+    try {
+      final token = await FirebaseMessagingService.instance.getToken();
+      if (token != null) {
+        await _db.collection('users').doc(currentUser!.uid).update({
+          'fcmToken': token,
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to update FCM token: $e');
     }
   }
 
