@@ -126,26 +126,12 @@ class _ChildDashboardState extends State<ChildDashboard> {
       validatedUrl = 'https://$url';
     }
 
-    final isHarmful = validatedUrl.contains('gambling') ||
-        validatedUrl.contains('slots') ||
-        validatedUrl.contains('badsite') ||
-        validatedUrl.contains('violent') ||
-        validatedUrl.contains('gory');
-
     context.read<ChildBloc>().add(VisitUrl(url: validatedUrl));
     _urlController.clear();
-    _updateGamification(isHarmful);
   }
 
   void _addQuickUrl(String url, String name) {
-    final isHarmful = url.contains('gambling') ||
-        url.contains('slots') ||
-        url.contains('badsite') ||
-        url.contains('violent') ||
-        url.contains('gory');
-
     context.read<ChildBloc>().add(VisitUrl(url: url));
-    _updateGamification(isHarmful);
   }
 
   void _clearHistory() {
@@ -204,9 +190,13 @@ class _ChildDashboardState extends State<ChildDashboard> {
               ),
             );
           }
+          if (state is ChildHistoryLoaded && state.isLatestVisitHarmful != null) {
+            _updateGamification(state.isLatestVisitHarmful!);
+          }
         },
         builder: (context, state) {
           final isLoading = state is ChildHistoryLoading;
+          final isAnalyzing = state is ChildHistoryLoaded ? state.isAnalyzing : false;
           final visitedUrls = state is ChildHistoryLoaded ? state.urls : <String>[];
 
           return Padding(
@@ -264,6 +254,23 @@ class _ChildDashboardState extends State<ChildDashboard> {
                           ),
                         ],
                       ),
+                      if (isAnalyzing) ...[
+                        SizedBox(height: 8.h),
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 12.w,
+                              height: 12.w,
+                              child: const CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            ),
+                            SizedBox(width: 8.w),
+                            Text(
+                              'AI is analyzing your visit...',
+                              style: StylesManager.litlleHintLine().copyWith(color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      ],
                       SizedBox(height: 12.h),
                       // XP Progress Bar
                       ClipRRect(

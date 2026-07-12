@@ -331,6 +331,25 @@ class FirebaseBackendService {
     }
   }
 
+  Future<void> clearHistory() async {
+    if (isFirebaseAvailable && currentUser != null) {
+      try {
+        String targetUid = currentUser!.uid;
+        final parentDoc = await _db.collection('users').doc(targetUid).get();
+        final linked = parentDoc.data()?['linked_children'] as List?;
+        if (linked != null && linked.isNotEmpty) {
+           targetUid = linked.first.toString();
+        }
+        await _db.collection('users').doc(targetUid).update({
+          'visited_urls': [],
+          'latest_report': FieldValue.delete(),
+        });
+      } catch (e) {
+        debugPrint('Failed to clear Firestore history: $e');
+      }
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // SAFETY REPORT SYNC
   // ─────────────────────────────────────────────────────────────────────────

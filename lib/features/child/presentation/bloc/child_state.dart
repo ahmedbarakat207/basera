@@ -13,11 +13,17 @@ class ChildHistoryLoading extends ChildState {}
 
 class ChildHistoryLoaded extends ChildState {
   final List<String> urls;
+  final bool isAnalyzing;
+  final bool? isLatestVisitHarmful;
 
-  const ChildHistoryLoaded({required this.urls});
+  const ChildHistoryLoaded({
+    required this.urls,
+    this.isAnalyzing = false,
+    this.isLatestVisitHarmful,
+  });
 
   @override
-  List<Object?> get props => [urls];
+  List<Object?> get props => [urls, isAnalyzing, isLatestVisitHarmful];
 }
 
 class ChildHistoryError extends ChildState {

@@ -34,6 +34,9 @@ class ChildBloc extends Bloc<ChildEvent, ChildState> {
       SyncService.instance.syncPendingData();
       
       final urls = await BaseraDatabase.instance.getVisitedUrls();
+      
+      // Emit analyzing state so UI can wait before awarding XP
+      emit(ChildHistoryLoaded(urls: urls, isAnalyzing: true));
 
       // Trigger automatic AI analysis at visit time to keep reports updated
       try {
@@ -42,11 +45,15 @@ class ChildBloc extends Bloc<ChildEvent, ChildState> {
         
         await _backendService.syncSafetyReport(childUid, report);
         await BaseraDatabase.instance.saveSafetyReport(childUid, report);
+        
+        final analysis = report.analyses.firstWhere((a) => a.url == event.url, orElse: () => report.analyses.first);
+        final isHarmful = analysis.isHarmful;
+
+        emit(ChildHistoryLoaded(urls: urls, isAnalyzing: false, isLatestVisitHarmful: isHarmful));
       } catch (e) {
         debugPrint('Auto-AI analysis failed: $e');
+        emit(ChildHistoryLoaded(urls: urls, isAnalyzing: false));
       }
-
-      emit(ChildHistoryLoaded(urls: urls));
     } catch (e) {
       emit(ChildHistoryError(message: 'Failed to record URL visit: ${e.toString()}'));
     }
@@ -55,6 +62,7 @@ class ChildBloc extends Bloc<ChildEvent, ChildState> {
   Future<void> _onClearHistory(ClearChildHistory event, Emitter<ChildState> emit) async {
     emit(ChildHistoryLoading());
     try {
+      await _backendService.clearHistory();
       await BaseraDatabase.instance.clearHistory();
       emit(const ChildHistoryLoaded(urls: []));
     } catch (e) {
