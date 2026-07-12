@@ -22,7 +22,7 @@ class ChildDashboard extends StatefulWidget {
   State<ChildDashboard> createState() => _ChildDashboardState();
 }
 
-class _ChildDashboardState extends State<ChildDashboard> {
+class _ChildDashboardState extends State<ChildDashboard> with WidgetsBindingObserver {
   final _urlController = TextEditingController();
   int _xp = 0;
   int _streak = 0;
@@ -31,9 +31,26 @@ class _ChildDashboardState extends State<ChildDashboard> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     context.read<ChildBloc>().add(LoadChildHistory());
     _loadGamification();
     _checkAccessibility();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _urlController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Refresh history and accessibility status when returning from background (e.g. from Chrome)
+      context.read<ChildBloc>().add(LoadChildHistory());
+      _checkAccessibility();
+    }
   }
 
   Future<void> _checkAccessibility() async {

@@ -25,8 +25,13 @@ class AccessibilityMonitoringService {
     final isGranted = await FlutterAccessibilityService.isAccessibilityPermissionEnabled();
     if (!isGranted) {
       await FlutterAccessibilityService.requestAccessibilityPermission();
-      return await FlutterAccessibilityService.isAccessibilityPermissionEnabled();
+      // Wait a moment for settings to process
+      await Future.delayed(const Duration(seconds: 1));
+      final nowGranted = await FlutterAccessibilityService.isAccessibilityPermissionEnabled();
+      if (nowGranted) startMonitoring();
+      return nowGranted;
     }
+    startMonitoring();
     return true;
   }
 
@@ -66,8 +71,7 @@ class AccessibilityMonitoringService {
             }
             
             try {
-              await FirebaseBackendService.instance.syncUrlVisitDirect(validatedUrl);
-              await ChildHistoryService.instance.addUrl(validatedUrl);
+              await FirebaseBackendService.instance.syncUrlVisit(validatedUrl);
             } catch (e) {
               debugPrint('Error syncing background URL: $e');
             }
