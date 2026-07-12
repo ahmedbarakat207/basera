@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:basera/core/utils/groq_client.dart';
+import 'package:basera/core/models/safety_report.dart';
 
 abstract class ParentEvent extends Equatable {
   const ParentEvent();

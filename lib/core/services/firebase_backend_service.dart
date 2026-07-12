@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:basera/core/utils/child_history_service.dart';
 import 'package:basera/core/utils/groq_client.dart';
 import 'package:basera/core/services/basera_database.dart';
+import 'package:basera/core/models/safety_report.dart';
 
 class FirebaseBackendService {
   static final FirebaseBackendService instance = FirebaseBackendService._internal();

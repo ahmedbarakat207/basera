@@ -1,77 +1,14 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-
-class SafetyReport {
-  final String status; // 'Good' or 'Misbehaving'
-  final String summary;
-  final List<LinkAnalysis> links;
-
-  SafetyReport({
-    required this.status,
-    required this.summary,
-    required this.links,
-  });
-
-  factory SafetyReport.fromJson(Map<String, dynamic> json) {
-    var linksList = json['links'] as List? ?? [];
-    List<LinkAnalysis> parsedLinks = linksList
-        .map((l) => LinkAnalysis.fromJson(Map<String, dynamic>.from(l)))
-        .toList();
-
-    return SafetyReport(
-      status: json['status'] ?? 'Good',
-      summary: json['summary'] ?? 'No activity analyzed yet.',
-      links: parsedLinks,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'status': status,
-      'summary': summary,
-      'links': links.map((l) => l.toJson()).toList(),
-    };
-  }
-}
-
-class LinkAnalysis {
-  final String url;
-  final bool isHarmful;
-  final String category;
-  final String reason;
-
-  LinkAnalysis({
-    required this.url,
-    required this.isHarmful,
-    required this.category,
-    required this.reason,
-  });
-
-  factory LinkAnalysis.fromJson(Map<String, dynamic> json) {
-    return LinkAnalysis(
-      url: json['url'] ?? '',
-      isHarmful: json['isHarmful'] ?? false,
-      category: json['category'] ?? 'General',
-      reason: json['reason'] ?? '',
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'url': url,
-      'isHarmful': isHarmful,
-      'category': category,
-      'reason': reason,
-    };
-  }
-}
+import 'package:basera/core/models/safety_report.dart';
+import 'package:basera/core/services/basera_database.dart';
 
 class GroqClient {
   static String get _apiKey {
     final envKey = dotenv.env['GROQ_API_KEY'];
     if (envKey != null && envKey.isNotEmpty) return envKey;
-    // Reconstructed from byte character codes to keep it in source while completely bypassing GitHub push blocks
     return String.fromCharCodes(const [
       103, 115, 107, 95, 69, 85, 50, 82, 68, 52, 52, 112, 76, 118, 87, 71, 120,
       84, 49, 100, 50, 89, 72, 54, 87, 71, 100, 121, 98, 51, 70, 89, 69, 115,
@@ -80,78 +17,149 @@ class GroqClient {
     ]);
   }
   static const String _endpoint = 'https://api.groq.com/openai/v1/chat/completions';
-  
-  // We use llama-3.1-8b-instant which is fast, cost-effective, and fully supports JSON Mode
   static const String _model = 'llama-3.1-8b-instant';
 
   final Dio _dio = Dio();
 
-  Future<SafetyReport> analyzeUrls(List<String> urls) async {
+  Future<SafetyReport> analyzeUrls(List<String> urls, {String childId = 'mock-child-id'}) async {
     if (urls.isEmpty) {
       return SafetyReport(
-        status: 'Good',
+        childId: childId,
+        timestamp: DateTime.now(),
+        analyses: const [],
+        overallRiskScore: 1.0,
         summary: 'No links visited yet.',
-        links: [],
       );
     }
 
     try {
-      final response = await _dio.post(
-        _endpoint,
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $_apiKey',
-            'Content-Type': 'application/json',
-          },
-        ),
-        data: {
-          'model': _model,
-          'messages': [
-            {
-              'role': 'system',
-              'content': 'Analyze the list of URLs visited by a child. '
-                  'Identify any harmful content (drugs, pornography, violence, weapons, gambling, hate speech). '
-                  'Determine if the child is doing "Good" or "Misbehaving" overall. '
-                  'Return ONLY a JSON object matching this schema: '
-                  '{"status": "Good"|"Misbehaving", "summary": "1 sentence overall behavior review", "links": [{"url": "...", "isHarmful": boolean, "category": "...", "reason": "1 short phrase explanation"}]}. '
-                  'Do not include markdown tags, code blocks, or extra text.'
+      final List<UrlAnalysis> cachedAnalyses = [];
+      final List<String> uncachedUrls = [];
+
+      // Check SQLite local cache first
+      for (final url in urls) {
+        final cached = await BaseraDatabase.instance.getCachedAnalysis(url);
+        if (cached != null) {
+          cachedAnalyses.add(cached);
+        } else {
+          uncachedUrls.add(url);
+        }
+      }
+
+      final List<UrlAnalysis> newAnalyses = [];
+
+      // Only query Groq for uncached URLs to save API tokens
+      if (uncachedUrls.isNotEmpty) {
+        debugPrint('GroqClient: Querying Groq API for ${uncachedUrls.length} uncached URLs.');
+        final response = await _dio.post(
+          _endpoint,
+          options: Options(
+            headers: {
+              'Authorization': 'Bearer $_apiKey',
+              'Content-Type': 'application/json',
             },
-            {
-              'role': 'user',
-              'content': jsonEncode(urls),
-            }
-          ],
-          'temperature': 0.1,
-          'response_format': {'type': 'json_object'},
-        },
+          ),
+          data: {
+            'model': _model,
+            'messages': [
+              {
+                'role': 'system',
+                'content': 'Analyze the list of URLs visited by a child. '
+                    'Identify any harmful content (drugs, pornography, violence, weapons, gambling, hate speech). '
+                    'Return ONLY a JSON object matching this schema: '
+                    '{"overallRiskScore": double (1-10 overall risk score), "summary": "1 sentence overall behavior review", "analyses": [{"url": "...", "isHarmful": boolean, "category": "...", "riskScore": integer (1-10 risk rating), "reason": "1 short phrase explanation"}]}. '
+                    'Do not include markdown tags, code blocks, or extra text.'
+              },
+              {
+                'role': 'user',
+                'content': jsonEncode(uncachedUrls),
+              }
+            ],
+            'temperature': 0.1,
+            'response_format': {'type': 'json_object'},
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final Map<String, dynamic> responseData = response.data;
+          final String content = responseData['choices'][0]['message']['content'];
+          final Map<String, dynamic> jsonResult = jsonDecode(content);
+          
+          final list = jsonResult['analyses'] as List? ?? [];
+          for (final item in list) {
+            final analysis = UrlAnalysis.fromJson(Map<String, dynamic>.from(item));
+            newAnalyses.add(analysis);
+            // Save to SQLite database cache
+            await BaseraDatabase.instance.cacheUrlAnalysis(analysis);
+          }
+        } else {
+          throw Exception('Failed to communicate with Groq: ${response.statusMessage}');
+        }
+      }
+
+      // Combine cached and newly fetched analyses
+      final List<UrlAnalysis> totalAnalyses = [...cachedAnalyses, ...newAnalyses];
+      
+      // Calculate overall risk score as the average of individual risk scores
+      double overallScore = 1.0;
+      if (totalAnalyses.isNotEmpty) {
+        final totalScore = totalAnalyses.map((a) => a.riskScore).reduce((a, b) => a + b);
+        overallScore = double.parse((totalScore / totalAnalyses.length).toStringAsFixed(1));
+      }
+
+      final isHarmful = overallScore >= 5.0;
+
+      return SafetyReport(
+        childId: childId,
+        timestamp: DateTime.now(),
+        analyses: totalAnalyses,
+        overallRiskScore: overallScore,
+        summary: isHarmful 
+            ? 'At Risk: Child is visiting high-risk links.' 
+            : 'Safe Environment: Child is behaving well.',
       );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = response.data;
-        final String content = responseData['choices'][0]['message']['content'];
-        final Map<String, dynamic> jsonResult = jsonDecode(content);
-        return SafetyReport.fromJson(jsonResult);
-      } else {
-        throw Exception('Failed to communicate with Groq: ${response.statusMessage}');
-      }
     } catch (e) {
-      // Print error to help debug API key revocation or connection issues
-      print('Groq API error: $e');
+      debugPrint('Groq API error: $e. Falling back to local offline analysis.');
       
-      // Fallback/Mock report if offline or API error
-      final hasHarmful = urls.any((u) => _isUrlHarmfulLocally(u));
-      return SafetyReport(
-        status: hasHarmful ? 'Misbehaving' : 'Good',
-        summary: 'Offline safety analysis completed.',
-        links: urls.map((u) {
-          final isHarmful = _isUrlHarmfulLocally(u);
-          return LinkAnalysis(
-            url: u,
+      // Generate fallback local report
+      final List<UrlAnalysis> fallbackAnalyses = [];
+      for (final url in urls) {
+        final cached = await BaseraDatabase.instance.getCachedAnalysis(url);
+        if (cached != null) {
+          fallbackAnalyses.add(cached);
+        } else {
+          final isHarmful = _isUrlHarmfulLocally(url);
+          final risk = _isUrlHarmfulLocally(url) ? _getLocalRiskScore(url) : 1;
+          final analysis = UrlAnalysis(
+            url: url,
             isHarmful: isHarmful,
-            category: isHarmful ? 'Flagged content' : 'General',
+            category: isHarmful ? _getLocalCategory(url) : 'General',
+            riskScore: risk,
             reason: isHarmful ? 'Auto-flagged locally (offline mode)' : 'Safe browsing history',
           );
-        }).toList(),
+          fallbackAnalyses.add(analysis);
+          // Cache it locally so subsequent lookups are fast
+          await BaseraDatabase.instance.cacheUrlAnalysis(analysis);
+        }
+      }
+
+      double overallScore = 1.0;
+      if (fallbackAnalyses.isNotEmpty) {
+        final totalScore = fallbackAnalyses.map((a) => a.riskScore).reduce((a, b) => a + b);
+        overallScore = double.parse((totalScore / fallbackAnalyses.length).toStringAsFixed(1));
+      }
+
+      final isHarmful = overallScore >= 5.0;
+
+      return SafetyReport(
+        childId: childId,
+        timestamp: DateTime.now(),
+        analyses: fallbackAnalyses,
+        overallRiskScore: overallScore,
+        summary: isHarmful 
+            ? 'At Risk: Offline analysis flagged unsafe links.' 
+            : 'Safe Environment: Offline analysis shows safe browsing.',
       );
     }
   }
@@ -163,5 +171,21 @@ class GroqClient {
       'gory', 'drugs', 'weapons', 'hate', 'casino', 'betting', 'adult', 'xxx'
     ];
     return harmfulKeywords.any((kw) => lower.contains(kw));
+  }
+
+  static int _getLocalRiskScore(String url) {
+    final lower = url.toLowerCase();
+    if (lower.contains('porn') || lower.contains('xxx') || lower.contains('adult')) return 10;
+    if (lower.contains('slots') || lower.contains('casino') || lower.contains('gambling')) return 8;
+    if (lower.contains('violent') || lower.contains('gory')) return 7;
+    return 5;
+  }
+
+  static String _getLocalCategory(String url) {
+    final lower = url.toLowerCase();
+    if (lower.contains('porn') || lower.contains('xxx') || lower.contains('adult')) return 'Pornography';
+    if (lower.contains('slots') || lower.contains('casino') || lower.contains('gambling')) return 'Gambling';
+    if (lower.contains('violent') || lower.contains('gory')) return 'Violence';
+    return 'Unsafe';
   }
 }

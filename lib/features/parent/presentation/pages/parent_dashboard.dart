@@ -6,6 +6,7 @@ import 'package:basera/core/resources/app_colors.dart';
 import 'package:basera/core/routes_manger/routes.dart';
 import 'package:basera/core/widgets/custom_button.dart';
 import 'package:basera/core/widgets/main_text_field.dart';
+import 'package:basera/core/models/safety_report.dart';
 import 'package:basera/core/utils/groq_client.dart';
 import 'package:basera/features/parent/presentation/bloc/parent_bloc.dart';
 import 'package:basera/features/parent/presentation/bloc/parent_event.dart';
@@ -99,8 +100,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
             int safeCount = 0;
 
             if (latestReport != null) {
-              harmfulCount = latestReport.links.where((l) => l.isHarmful).length;
-              safeCount = latestReport.links.where((l) => !l.isHarmful).length;
+              harmfulCount = latestReport.analyses.where((l) => l.isHarmful).length;
+              safeCount = latestReport.analyses.where((l) => !l.isHarmful).length;
             }
 
             // Real-time alerts logic for flagged content
@@ -304,9 +305,9 @@ class _ParentDashboardState extends State<ParentDashboard> {
                         itemBuilder: (context, index) {
                           final url = visitedUrls[index];
                           
-                          LinkAnalysis? analysis;
+                          UrlAnalysis? analysis;
                           if (latestReport != null) {
-                            final matches = latestReport.links.where((l) => l.url == url);
+                            final matches = latestReport.analyses.where((l) => l.url == url);
                             if (matches.isNotEmpty) {
                               analysis = matches.first;
                             }
@@ -359,7 +360,9 @@ class _ParentDashboardState extends State<ParentDashboard> {
                                           border: Border.all(color: labelColor.withValues(alpha: 0.3)),
                                         ),
                                         child: Text(
-                                          hasAnalysis ? (isHarmful ? 'Harmful' : 'Safe') : 'Pending',
+                                          hasAnalysis 
+                                              ? (isHarmful ? 'Harmful (${analysis.riskScore}/10)' : 'Safe (${analysis.riskScore}/10)') 
+                                              : 'Pending',
                                           style: GoogleFonts.outfit(
                                             fontSize: 10.sp,
                                             color: hasAnalysis ? labelColor : AppColors.textDisabled,
@@ -454,7 +457,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
       );
     }
 
-    final isGood = latestReport.status.toLowerCase().contains('good');
+    final isGood = latestReport.overallRiskScore < 5.0;
     final statusColor = isGood ? AppColors.success : AppColors.error;
     final statusBgColor = isGood ? AppColors.greenWhite : AppColors.redWhite;
 
@@ -496,7 +499,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                     ),
                     SizedBox(width: 8.w),
                     Text(
-                      'Status: ${latestReport.status}',
+                      'Status: ${isGood ? "Safe" : "At Risk"}',
                       style: GoogleFonts.outfit(
                         fontSize: 16.sp,
                         fontWeight: FontWeight.bold,
@@ -512,7 +515,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                     borderRadius: BorderRadius.circular(20.r),
                   ),
                   child: Text(
-                    isGood ? 'Safe Environment' : 'At Risk',
+                    'Risk Index: ${latestReport.overallRiskScore}/10',
                     style: GoogleFonts.outfit(
                       fontSize: 11.sp,
                       fontWeight: FontWeight.bold,

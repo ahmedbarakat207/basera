@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'groq_client.dart';
+import 'package:basera/core/models/safety_report.dart';
 
 class ChildHistoryService {
   static const String _keyUrls = 'basera_visited_urls';

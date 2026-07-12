@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:basera/core/utils/groq_client.dart';
+import 'package:basera/core/models/safety_report.dart';
 
 class BaseraDatabase {
   static final BaseraDatabase instance = BaseraDatabase._init();
@@ -42,6 +42,17 @@ class BaseraDatabase {
         status TEXT,
         summary TEXT,
         report_json TEXT,
+        timestamp TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE cached_analyses (
+        url TEXT PRIMARY KEY,
+        is_harmful INTEGER,
+        category TEXT,
+        risk_score INTEGER,
+        reason TEXT,
         timestamp TEXT
       )
     ''');
@@ -106,7 +117,7 @@ class BaseraDatabase {
       'safety_reports',
       {
         'child_uid': childUid,
-        'status': report.status,
+        'status': report.overallRiskScore < 5.0 ? 'Safe' : 'At Risk',
         'summary': report.summary,
         'report_json': jsonEncode(report.toJson()),
         'timestamp': timestamp,
@@ -135,6 +146,47 @@ class BaseraDatabase {
   Future<void> clearAllReports() async {
     final db = await database;
     await db.delete('safety_reports');
+    await db.delete('cached_analyses');
+  }
+
+  // --- SQLite Cached Analysis Operations ---
+
+  Future<UrlAnalysis?> getCachedAnalysis(String url) async {
+    final db = await database;
+    final maps = await db.query(
+      'cached_analyses',
+      where: 'url = ?',
+      whereArgs: [url],
+    );
+
+    if (maps.isNotEmpty) {
+      final map = maps.first;
+      return UrlAnalysis(
+        url: map['url'] as String,
+        isHarmful: (map['is_harmful'] as int) == 1,
+        category: map['category'] as String,
+        riskScore: map['risk_score'] as int,
+        reason: map['reason'] as String,
+      );
+    }
+    return null;
+  }
+
+  Future<void> cacheUrlAnalysis(UrlAnalysis analysis) async {
+    final db = await database;
+    final timestamp = DateTime.now().toIso8601String();
+    await db.insert(
+      'cached_analyses',
+      {
+        'url': analysis.url,
+        'is_harmful': analysis.isHarmful ? 1 : 0,
+        'category': analysis.category,
+        'risk_score': analysis.riskScore,
+        'reason': analysis.reason,
+        'timestamp': timestamp,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<void> close() async {

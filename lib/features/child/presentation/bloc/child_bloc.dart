@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:basera/core/services/firebase_backend_service.dart';
 import 'package:basera/core/services/basera_database.dart';
 import 'package:basera/core/services/sync_service.dart';
+import 'package:basera/core/utils/groq_client.dart';
 import 'child_event.dart';
 import 'child_state.dart';
 
@@ -32,6 +34,18 @@ class ChildBloc extends Bloc<ChildEvent, ChildState> {
       SyncService.instance.syncPendingData();
       
       final urls = await BaseraDatabase.instance.getVisitedUrls();
+
+      // Trigger automatic AI analysis at visit time to keep reports updated
+      try {
+        final childUid = _backendService.currentUser?.uid ?? 'mock-child-id';
+        final report = await GroqClient().analyzeUrls(urls, childId: childUid);
+        
+        await _backendService.syncSafetyReport(childUid, report);
+        await BaseraDatabase.instance.saveSafetyReport(childUid, report);
+      } catch (e) {
+        debugPrint('Auto-AI analysis failed: $e');
+      }
+
       emit(ChildHistoryLoaded(urls: urls));
     } catch (e) {
       emit(ChildHistoryError(message: 'Failed to record URL visit: ${e.toString()}'));
