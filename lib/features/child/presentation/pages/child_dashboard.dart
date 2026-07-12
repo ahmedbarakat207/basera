@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:basera/core/resources/app_colors.dart';
 import 'package:basera/core/routes_manger/routes.dart';
 import 'package:basera/core/widgets/custom_button.dart';
 import 'package:basera/core/widgets/main_text_field.dart';
-import 'package:basera/core/utils/child_history_service.dart';
-import 'package:basera/core/services/firebase_backend_service.dart';
+import 'package:basera/features/child/presentation/bloc/child_bloc.dart';
+import 'package:basera/features/child/presentation/bloc/child_event.dart';
+import 'package:basera/features/child/presentation/bloc/child_state.dart';
+import 'package:basera/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:basera/features/auth/presentation/bloc/auth_event.dart';
 
 class ChildDashboard extends StatefulWidget {
   const ChildDashboard({super.key});
@@ -17,13 +21,11 @@ class ChildDashboard extends StatefulWidget {
 
 class _ChildDashboardState extends State<ChildDashboard> {
   final _urlController = TextEditingController();
-  List<String> _visitedUrls = [];
-  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadHistory();
+    context.read<ChildBloc>().add(LoadChildHistory());
   }
 
   @override
@@ -32,16 +34,7 @@ class _ChildDashboardState extends State<ChildDashboard> {
     super.dispose();
   }
 
-  Future<void> _loadHistory() async {
-    setState(() => _isLoading = true);
-    final urls = await ChildHistoryService.instance.getVisitedUrls();
-    setState(() {
-      _visitedUrls = urls;
-      _isLoading = false;
-    });
-  }
-
-  Future<void> _addCustomUrl() async {
+  void _addCustomUrl() {
     final url = _urlController.text.trim();
     if (url.isEmpty) return;
 
@@ -51,43 +44,16 @@ class _ChildDashboardState extends State<ChildDashboard> {
       validatedUrl = 'https://$url';
     }
 
-    await FirebaseBackendService.instance.syncUrlVisit(validatedUrl);
+    context.read<ChildBloc>().add(VisitUrl(url: validatedUrl));
     _urlController.clear();
-    _loadHistory();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Simulated visit to $validatedUrl'),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.success,
-      ),
-    );
   }
 
-  Future<void> _addQuickUrl(String url, String name) async {
-    await FirebaseBackendService.instance.syncUrlVisit(url);
-    _loadHistory();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Simulated visit to $name'),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.primary,
-        duration: const Duration(seconds: 1),
-      ),
-    );
+  void _addQuickUrl(String url, String name) {
+    context.read<ChildBloc>().add(VisitUrl(url: url));
   }
 
-  Future<void> _clearHistory() async {
-    await ChildHistoryService.instance.clearHistory();
-    _loadHistory();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Cleared history'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+  void _clearHistory() {
+    context.read<ChildBloc>().add(ClearChildHistory());
   }
 
   @override
@@ -111,7 +77,7 @@ class _ChildDashboardState extends State<ChildDashboard> {
             tooltip: 'Switch to Parent Mode',
             onPressed: () async {
               final navigator = Navigator.of(context);
-              await ChildHistoryService.instance.setUserRole('parent');
+              // Switch role locally and reload
               navigator.pushReplacementNamed(Routes.mainRoute);
             },
           ),
@@ -119,184 +85,210 @@ class _ChildDashboardState extends State<ChildDashboard> {
             icon: const Icon(Icons.logout_rounded, color: Colors.white),
             tooltip: 'Log Out',
             onPressed: () async {
-              final navigator = Navigator.of(context);
-              await FirebaseBackendService.instance.signOut();
-              navigator.pushReplacementNamed(Routes.signUpRoute);
+              context.read<AuthBloc>().add(AuthLogoutRequested());
+              Navigator.pushReplacementNamed(context, Routes.signUpRoute);
             },
           ),
         ],
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16.r),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Welcome Section
-            Container(
-              padding: EdgeInsets.all(16.r),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16.r),
-                border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+      body: BlocConsumer<ChildBloc, ChildState>(
+        listener: (context, state) {
+          if (state is ChildHistoryError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
               ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 28.r,
-                    backgroundColor: AppColors.lightBlue,
-                    child: Text(
-                      '👦',
-                      style: TextStyle(fontSize: 28.sp),
-                    ),
+            );
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is ChildHistoryLoading;
+          final visitedUrls = state is ChildHistoryLoaded ? state.urls : <String>[];
+
+          return Padding(
+            padding: EdgeInsets.all(16.r),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Welcome Section
+                Container(
+                  padding: EdgeInsets.all(16.r),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(16.r),
+                    border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  SizedBox(width: 16.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hey there, Kiddo!',
-                          style: GoogleFonts.outfit(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.selectedText,
-                          ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 28.r,
+                        backgroundColor: AppColors.lightBlue,
+                        child: Text(
+                          '👦',
+                          style: TextStyle(fontSize: 28.sp),
                         ),
-                        SizedBox(height: 4.h),
-                        Text(
-                          'Your browsing is monitored to keep you safe online.',
-                          style: GoogleFonts.outfit(
-                            fontSize: 12.sp,
-                            color: AppColors.textSecondary,
-                          ),
+                      ),
+                      SizedBox(width: 16.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Child Simulator Mode',
+                              style: GoogleFonts.outfit(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.selectedText,
+                              ),
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              'Visit simulated links to generate safe/unsafe activity streams.',
+                              style: GoogleFonts.outfit(
+                                fontSize: 12.sp,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 20.h),
-
-            // URL Input Section
-            Text(
-              'Visit a Website',
-              style: GoogleFonts.outfit(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: AppColors.selectedText,
-              ),
-            ),
-            SizedBox(height: 8.h),
-            Row(
-              children: [
-                Expanded(
-                  child: BuildTextField(
-                    controller: _urlController,
-                    hint: 'google.com or https://example.com',
-                    backgroundColor: AppColors.surface,
-                    borderBackgroundColor: AppColors.border,
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(width: 12.w),
-                CustomButton(
-                  text: 'Visit',
-                  onPressed: _addCustomUrl,
-                  width: 80.w,
-                  height: 48.h,
-                  backgroundColor: AppColors.primary,
-                  textColor: Colors.white,
-                  borderRadius: 10.r,
-                  elevation: 2,
-                ),
-              ],
-            ),
-            SizedBox(height: 20.h),
+                SizedBox(height: 24.h),
 
-            // Quick simulation presets
-            Text(
-              'Test Links (Quick Preset Simulations)',
-              style: GoogleFonts.outfit(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            SizedBox(height: 8.h),
-            Wrap(
-              spacing: 8.w,
-              runSpacing: 8.h,
-              children: [
-                _buildQuickPreset(
-                  'Wikipedia',
-                  'https://en.wikipedia.org/wiki/Dinosaur',
-                  Colors.blue.shade100,
-                  Colors.blue.shade900,
-                ),
-                _buildQuickPreset(
-                  'Duolingo',
-                  'https://www.duolingo.com',
-                  Colors.green.shade100,
-                  Colors.green.shade900,
-                ),
-                _buildQuickPreset(
-                  'Scratch',
-                  'https://scratch.mit.edu',
-                  Colors.orange.shade100,
-                  Colors.orange.shade900,
-                ),
-                _buildQuickPreset(
-                  'Casino / Slots ⚠️',
-                  'https://www.freeonlinegamblingweb.com/slots',
-                  Colors.red.shade100,
-                  Colors.red.shade900,
-                ),
-                _buildQuickPreset(
-                  'Adult Games ⚠️',
-                  'https://www.badsite-violent-games.com/gory-shooter',
-                  Colors.red.shade100,
-                  Colors.red.shade900,
-                ),
-              ],
-            ),
-            SizedBox(height: 24.h),
-
-            // Visited links history
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+                // Simulated URL search bar
                 Text(
-                  'Recently Visited Links (${_visitedUrls.length})',
+                  'Simulate Visiting a Website',
                   style: GoogleFonts.outfit(
                     fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
                     color: AppColors.selectedText,
                   ),
                 ),
-                if (_visitedUrls.isNotEmpty)
-                  TextButton(
-                    onPressed: _clearHistory,
-                    child: Text(
-                      'Clear History',
-                      style: GoogleFonts.outfit(
-                        color: AppColors.error,
-                        fontWeight: FontWeight.w600,
+                SizedBox(height: 12.h),
+                Row(
+                  children: [
+                    Expanded(
+                      child: BuildTextField(
+                        controller: _urlController,
+                        hint: 'Enter domain (e.g. google.com)',
+                        backgroundColor: AppColors.surface,
+                        borderBackgroundColor: AppColors.border,
                       ),
                     ),
+                    SizedBox(width: 12.w),
+                    CustomButton(
+                      text: 'Go',
+                      isLoading: isLoading,
+                      onPressed: isLoading ? null : _addCustomUrl,
+                      height: 52.h,
+                      width: 70.w,
+                      backgroundColor: AppColors.primary,
+                      textColor: Colors.white,
+                      borderRadius: 12.r,
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20.h),
+
+                // Preset Buttons
+                Text(
+                  'Quick Preset Simulation Chips',
+                  style: GoogleFonts.outfit(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
                   ),
-              ],
-            ),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _visitedUrls.isEmpty
+                ),
+                SizedBox(height: 10.h),
+                Wrap(
+                  spacing: 8.w,
+                  runSpacing: 8.h,
+                  children: [
+                    _buildQuickPreset(
+                      'Wikipedia',
+                      'https://en.wikipedia.org/wiki/Flutter_(software)',
+                      AppColors.greenWhite,
+                      Colors.green.shade700,
+                    ),
+                    _buildQuickPreset(
+                      'Duolingo',
+                      'https://www.duolingo.com',
+                      AppColors.greenWhite,
+                      Colors.green.shade700,
+                    ),
+                    _buildQuickPreset(
+                      'Khan Academy',
+                      'https://www.khanacademy.org',
+                      AppColors.greenWhite,
+                      Colors.green.shade700,
+                    ),
+                    _buildQuickPreset(
+                      'Scratch MIT',
+                      'https://www.scratch.mit.edu',
+                      AppColors.greenWhite,
+                      Colors.green.shade700,
+                    ),
+                    _buildQuickPreset(
+                      'Slots 🎰 (Unsafe)',
+                      'https://www.freeonlinegamblingweb.com/slots',
+                      AppColors.redWhite,
+                      AppColors.error,
+                    ),
+                    _buildQuickPreset(
+                      'Violent Gory Games 💥 (Unsafe)',
+                      'https://www.badsite-violent-games.com/gory-scenes',
+                      AppColors.redWhite,
+                      AppColors.error,
+                    ),
+                  ],
+                ),
+                SizedBox(height: 24.h),
+
+                // History Feed
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Browsing History Stream',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.selectedText,
+                      ),
+                    ),
+                    if (visitedUrls.isNotEmpty)
+                      TextButton.icon(
+                        onPressed: isLoading ? null : _clearHistory,
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        label: Text(
+                          'Clear All',
+                          style: GoogleFonts.outfit(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                  ],
+                ),
+                SizedBox(height: 12.h),
+                Expanded(
+                  child: visitedUrls.isEmpty
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -306,10 +298,11 @@ class _ChildDashboardState extends State<ChildDashboard> {
                                 size: 48.sp,
                                 color: AppColors.textDisabled,
                               ),
-                              SizedBox(height: 8.h),
+                              SizedBox(height: 12.h),
                               Text(
-                                'No links visited yet.',
+                                'No URLs visited yet',
                                 style: GoogleFonts.outfit(
+                                  fontSize: 15.sp,
                                   color: AppColors.textSecondary,
                                 ),
                               ),
@@ -318,10 +311,13 @@ class _ChildDashboardState extends State<ChildDashboard> {
                         )
                       : ListView.builder(
                           physics: const BouncingScrollPhysics(),
-                          itemCount: _visitedUrls.length,
+                          itemCount: visitedUrls.length,
                           itemBuilder: (context, index) {
-                            final url = _visitedUrls[index];
-                            final isHarmfulDemo = url.contains('gambling') || url.contains('violent') || url.contains('badsite');
+                            final url = visitedUrls[index];
+                            final isHarmfulDemo = url.contains('gambling') ||
+                                url.contains('violent') ||
+                                url.contains('badsite') ||
+                                url.contains('slots');
                             return Card(
                               color: AppColors.surface,
                               elevation: 0,
@@ -370,9 +366,11 @@ class _ChildDashboardState extends State<ChildDashboard> {
                             );
                           },
                         ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

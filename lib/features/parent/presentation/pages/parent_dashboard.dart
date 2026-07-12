@@ -1,13 +1,17 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:basera/core/resources/app_colors.dart';
 import 'package:basera/core/routes_manger/routes.dart';
 import 'package:basera/core/widgets/custom_button.dart';
+import 'package:basera/core/widgets/main_text_field.dart';
 import 'package:basera/core/utils/groq_client.dart';
-import 'package:basera/core/utils/child_history_service.dart';
-import 'package:basera/core/services/firebase_backend_service.dart';
+import 'package:basera/features/parent/presentation/bloc/parent_bloc.dart';
+import 'package:basera/features/parent/presentation/bloc/parent_event.dart';
+import 'package:basera/features/parent/presentation/bloc/parent_state.dart';
+import 'package:basera/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:basera/features/auth/presentation/bloc/auth_event.dart';
 
 class ParentDashboard extends StatefulWidget {
   const ParentDashboard({super.key});
@@ -17,149 +21,22 @@ class ParentDashboard extends StatefulWidget {
 }
 
 class _ParentDashboardState extends State<ParentDashboard> {
-  final GroqClient _groqClient = GroqClient();
-  List<String> _visitedUrls = [];
-  SafetyReport? _latestReport;
-  
-  List<Map<String, dynamic>> _children = [];
-  String? _selectedChildUid;
-  StreamSubscription? _urlsSubscription;
-  StreamSubscription? _reportSubscription;
-  
-  bool _isLoadingHistory = false;
-  bool _isAnalyzing = false;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _loadChildren();
+    context.read<ParentBloc>().add(LoadChildrenProfiles());
   }
 
   @override
   void dispose() {
-    _urlsSubscription?.cancel();
-    _reportSubscription?.cancel();
+    _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadChildren() async {
-    setState(() => _isLoadingHistory = true);
-    try {
-      final children = await FirebaseBackendService.instance.fetchChildren();
-      setState(() {
-        _children = children;
-      });
-
-      if (children.isNotEmpty) {
-        _selectChild(children.first['uid'] ?? 'mock-child-id', children.first['name'] ?? 'Demo Child Account');
-      } else {
-        await _loadLocalData();
-      }
-    } catch (_) {
-      await _loadLocalData();
-    }
-  }
-
-  void _selectChild(String childUid, String childName) {
-    _urlsSubscription?.cancel();
-    _reportSubscription?.cancel();
-
-    setState(() {
-      _selectedChildUid = childUid;
-      _isLoadingHistory = true;
-    });
-
-    _urlsSubscription = FirebaseBackendService.instance.streamChildUrls(childUid).listen((urls) {
-      setState(() {
-        _visitedUrls = urls;
-        _isLoadingHistory = false;
-      });
-    }, onError: (e) {
-      setState(() => _isLoadingHistory = false);
-    });
-
-    _reportSubscription = FirebaseBackendService.instance.streamChildReport(childUid).listen((report) {
-      setState(() {
-        _latestReport = report;
-      });
-    });
-  }
-
-  Future<void> _loadLocalData() async {
-    final urls = await ChildHistoryService.instance.getVisitedUrls();
-    final report = await ChildHistoryService.instance.getLatestReport();
-    setState(() {
-      _visitedUrls = urls;
-      _latestReport = report;
-      _isLoadingHistory = false;
-    });
-  }
-
-  Future<void> _runAiAnalysis() async {
-    if (_visitedUrls.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No browsing history to analyze. Please log in as Child and visit some links.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isAnalyzing = true);
-
-    try {
-      final report = await _groqClient.analyzeUrls(_visitedUrls);
-      
-      final targetUid = _selectedChildUid ?? 'mock-child-id';
-      await FirebaseBackendService.instance.syncSafetyReport(targetUid, report);
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('AI Analysis completed successfully!'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.success,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to analyze: $e'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.error,
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _isAnalyzing = false);
-      }
-    }
-  }
-
-  Future<void> _clearHistory() async {
-    await ChildHistoryService.instance.clearHistory();
-    await _loadChildren();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('History and reports cleared.'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    int harmfulCount = 0;
-    int safeCount = 0;
-
-    if (_latestReport != null) {
-      harmfulCount = _latestReport!.links.where((l) => l.isHarmful).length;
-      safeCount = _latestReport!.links.where((l) => !l.isHarmful).length;
-    }
-
     return Scaffold(
       backgroundColor: AppColors.backGround,
       appBar: AppBar(
@@ -179,7 +56,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
             tooltip: 'Switch to Child Mode',
             onPressed: () async {
               final navigator = Navigator.of(context);
-              await ChildHistoryService.instance.setUserRole('child');
+              // Switch role locally and reload
               navigator.pushReplacementNamed(Routes.mainRoute);
             },
           ),
@@ -187,25 +64,67 @@ class _ParentDashboardState extends State<ParentDashboard> {
             icon: const Icon(Icons.logout_rounded, color: Colors.white),
             tooltip: 'Log Out',
             onPressed: () async {
-              final navigator = Navigator.of(context);
-              await FirebaseBackendService.instance.signOut();
-              navigator.pushReplacementNamed(Routes.signUpRoute);
+              context.read<AuthBloc>().add(AuthLogoutRequested());
+              Navigator.pushReplacementNamed(context, Routes.signUpRoute);
             },
           ),
         ],
       ),
-      body: _isLoadingHistory
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadChildren,
+      body: BlocConsumer<ParentBloc, ParentState>(
+        listener: (context, state) {
+          if (state is ParentError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        },
+        builder: (context, state) {
+          if (state is ParentLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (state is ParentLoaded) {
+            final children = state.children;
+            final selectedChildUid = state.selectedChildUid;
+            final visitedUrls = state.filteredVisitedUrls;
+            final allUrls = state.allVisitedUrls;
+            final latestReport = state.latestReport;
+            final isAnalyzing = state.isAnalyzing;
+
+            int harmfulCount = 0;
+            int safeCount = 0;
+
+            if (latestReport != null) {
+              harmfulCount = latestReport.links.where((l) => l.isHarmful).length;
+              safeCount = latestReport.links.where((l) => !l.isHarmful).length;
+            }
+
+            // Real-time alerts logic for flagged content
+            final List<String> flaggedUnsafeUrls = allUrls.where((u) {
+              final lower = u.toLowerCase();
+              return lower.contains('gambling') ||
+                  lower.contains('slots') ||
+                  lower.contains('badsite') ||
+                  lower.contains('violent') ||
+                  lower.contains('gory');
+            }).toList();
+
+            return RefreshIndicator(
+              onRefresh: () async {
+                context.read<ParentBloc>().add(LoadChildrenProfiles());
+              },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: EdgeInsets.all(16.r),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Child Selector Dropdown
-                    if (_children.isNotEmpty) ...[
+                    // Child profile selection dropdown
+                    if (children.isNotEmpty) ...[
                       Text(
                         'Select Child Profile:',
                         style: GoogleFonts.outfit(
@@ -224,10 +143,10 @@ class _ParentDashboardState extends State<ParentDashboard> {
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
-                            value: _selectedChildUid,
+                            value: selectedChildUid,
                             isExpanded: true,
                             icon: const Icon(Icons.arrow_drop_down_circle_outlined, color: AppColors.primary),
-                            items: _children.map((child) {
+                            items: children.map((child) {
                               return DropdownMenuItem<String>(
                                 value: child['uid'],
                                 child: Text(
@@ -241,8 +160,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                             }).toList(),
                             onChanged: (uid) {
                               if (uid != null) {
-                                final child = _children.firstWhere((c) => c['uid'] == uid);
-                                _selectChild(uid, child['name'] ?? 'Child Account');
+                                context.read<ParentBloc>().add(SelectChildProfile(childUid: uid));
                               }
                             },
                           ),
@@ -250,27 +168,76 @@ class _ParentDashboardState extends State<ParentDashboard> {
                       ),
                       SizedBox(height: 16.h),
                     ],
-                    // Top Info Card
-                    _buildOverviewCard(harmfulCount, safeCount),
+
+                    // Top Info Safety Card
+                    _buildOverviewCard(latestReport, harmfulCount, safeCount),
                     SizedBox(height: 20.h),
+
+                    // Flagged Content Real-time Alert Banner
+                    if (flaggedUnsafeUrls.isNotEmpty) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(12.r),
+                        decoration: BoxDecoration(
+                          color: AppColors.redWhite,
+                          borderRadius: BorderRadius.circular(12.r),
+                          border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 24.sp),
+                            SizedBox(width: 12.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'DANGER: Flagged Content Detected',
+                                    style: GoogleFonts.outfit(
+                                      color: AppColors.error,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13.sp,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Child visited ${flaggedUnsafeUrls.length} potentially harmful URLs recently.',
+                                    style: GoogleFonts.outfit(
+                                      color: AppColors.error.withValues(alpha: 0.8),
+                                      fontSize: 11.sp,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 16.h),
+                    ],
 
                     // Actions Row
                     Row(
                       children: [
                         Expanded(
                           child: CustomButton(
-                            text: _isAnalyzing ? 'Analyzing...' : 'Analyze with Iris AI',
-                            onPressed: _isAnalyzing ? null : _runAiAnalysis,
-                            isLoading: _isAnalyzing,
+                            text: isAnalyzing ? 'Analyzing...' : 'Analyze with Iris AI',
+                            onPressed: isAnalyzing
+                                ? null
+                                : () {
+                                    context.read<ParentBloc>().add(RunAiAnalysis(urls: allUrls));
+                                  },
+                            isLoading: isAnalyzing,
                             backgroundColor: AppColors.primary,
                             textColor: Colors.white,
                             borderRadius: 12.r,
                           ),
                         ),
-                        if (_visitedUrls.isNotEmpty) ...[
+                        if (allUrls.isNotEmpty) ...[
                           SizedBox(width: 12.w),
                           IconButton(
-                            onPressed: _clearHistory,
+                            onPressed: () {
+                              context.read<ParentBloc>().add(ClearParentData());
+                            },
                             icon: const Icon(Icons.delete_sweep_rounded),
                             color: AppColors.error,
                             iconSize: 28.sp,
@@ -281,28 +248,178 @@ class _ParentDashboardState extends State<ParentDashboard> {
                     ),
                     SizedBox(height: 24.h),
 
-                    // Links Header
+                    // Search/Filter Bar
+                    Text(
+                      'Search & Filter browsing history',
+                      style: GoogleFonts.outfit(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    BuildTextField(
+                      controller: _searchController,
+                      hint: 'Type domain to filter (e.g. wikipedia)...',
+                      backgroundColor: AppColors.surface,
+                      borderBackgroundColor: AppColors.border,
+                      onChanged: (val) {
+                        context.read<ParentBloc>().add(FilterUrls(query: val));
+                      },
+                    ),
+                    SizedBox(height: 24.h),
+
+                    // Browsing history stream list
                     Text(
                       'Monitored Browsing Activity',
                       style: GoogleFonts.outfit(
                         fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.bold,
                         color: AppColors.selectedText,
                       ),
                     ),
-                    SizedBox(height: 10.h),
+                    SizedBox(height: 12.h),
 
-                    // Link feed list
-                    _buildLinksFeed(),
+                    if (visitedUrls.isEmpty) ...[
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40.h),
+                          child: Column(
+                            children: [
+                              Icon(Icons.history_toggle_off_rounded, size: 48.sp, color: AppColors.textDisabled),
+                              SizedBox(height: 12.h),
+                              Text(
+                                'No URLs match the query.',
+                                style: GoogleFonts.outfit(color: AppColors.textSecondary, fontSize: 14.sp),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    ] else ...[
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: visitedUrls.length,
+                        itemBuilder: (context, index) {
+                          final url = visitedUrls[index];
+                          
+                          LinkAnalysis? analysis;
+                          if (latestReport != null) {
+                            final matches = latestReport.links.where((l) => l.url == url);
+                            if (matches.isNotEmpty) {
+                              analysis = matches.first;
+                            }
+                          }
+
+                          final hasAnalysis = analysis != null;
+                          final isHarmful = hasAnalysis
+                              ? analysis.isHarmful
+                              : (url.contains('gambling') ||
+                                  url.contains('slots') ||
+                                  url.contains('badsite') ||
+                                  url.contains('violent'));
+                          final labelColor = isHarmful ? AppColors.error : AppColors.success;
+                          final labelBgColor = isHarmful ? AppColors.redWhite : AppColors.greenWhite;
+
+                          return Card(
+                            color: AppColors.surface,
+                            margin: EdgeInsets.symmetric(vertical: 8.h),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.r),
+                              side: BorderSide(color: AppColors.border.withValues(alpha: 0.3)),
+                            ),
+                            child: Padding(
+                              padding: EdgeInsets.all(12.r),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          url,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 14.sp,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.selectedText,
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Container(
+                                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                                        decoration: BoxDecoration(
+                                          color: labelBgColor,
+                                          borderRadius: BorderRadius.circular(8.r),
+                                          border: Border.all(color: labelColor.withValues(alpha: 0.3)),
+                                        ),
+                                        child: Text(
+                                          hasAnalysis ? (isHarmful ? 'Harmful' : 'Safe') : 'Pending',
+                                          style: GoogleFonts.outfit(
+                                            fontSize: 10.sp,
+                                            color: hasAnalysis ? labelColor : AppColors.textDisabled,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 6.h),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.folder_open_rounded, size: 14.sp, color: AppColors.textDisabled),
+                                      SizedBox(width: 4.w),
+                                      Text(
+                                        'Category: ${hasAnalysis ? analysis.category : "General"}',
+                                        style: GoogleFonts.outfit(fontSize: 11.sp, color: AppColors.textSecondary),
+                                      ),
+                                    ],
+                                  ),
+                                  if (hasAnalysis && analysis.reason.isNotEmpty) ...[
+                                    SizedBox(height: 8.h),
+                                    Container(
+                                      width: double.infinity,
+                                      padding: EdgeInsets.all(8.r),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.backGround,
+                                        borderRadius: BorderRadius.circular(8.r),
+                                      ),
+                                      child: Text(
+                                        analysis.reason,
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 12.sp,
+                                          fontStyle: FontStyle.italic,
+                                          color: AppColors.selectedText,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ],
                 ),
               ),
-            ),
+            );
+          }
+
+          return const Center(child: Text('Please select a child profile to monitor.'));
+        },
+      ),
     );
   }
 
-  Widget _buildOverviewCard(int harmfulCount, int safeCount) {
-    if (_latestReport == null) {
+  Widget _buildOverviewCard(SafetyReport? latestReport, int harmfulCount, int safeCount) {
+    if (latestReport == null) {
       return Container(
         width: double.infinity,
         padding: EdgeInsets.all(20.r),
@@ -337,7 +454,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
       );
     }
 
-    final isGood = _latestReport!.status.toLowerCase().contains('good');
+    final isGood = latestReport.status.toLowerCase().contains('good');
     final statusColor = isGood ? AppColors.success : AppColors.error;
     final statusBgColor = isGood ? AppColors.greenWhite : AppColors.redWhite;
 
@@ -363,8 +480,8 @@ class _ParentDashboardState extends State<ParentDashboard> {
             decoration: BoxDecoration(
               color: statusBgColor,
               borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(15.r),
-                topRight: Radius.circular(15.r),
+                topLeft: Radius.circular(16.r),
+                topRight: Radius.circular(16.r),
               ),
             ),
             child: Row(
@@ -379,9 +496,9 @@ class _ParentDashboardState extends State<ParentDashboard> {
                     ),
                     SizedBox(width: 8.w),
                     Text(
-                      isGood ? 'Good Behavior Status' : 'Attention Required',
+                      'Status: ${latestReport.status}',
                       style: GoogleFonts.outfit(
-                        fontSize: 15.sp,
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.bold,
                         color: statusColor,
                       ),
@@ -391,15 +508,15 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
                   decoration: BoxDecoration(
-                    color: statusColor,
-                    borderRadius: BorderRadius.circular(12.r),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20.r),
                   ),
                   child: Text(
-                    _latestReport!.status.toUpperCase(),
+                    isGood ? 'Safe Environment' : 'At Risk',
                     style: GoogleFonts.outfit(
                       fontSize: 11.sp,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: statusColor,
                     ),
                   ),
                 ),
@@ -407,40 +524,88 @@ class _ParentDashboardState extends State<ParentDashboard> {
             ),
           ),
 
-          // Details Body
+          // Overview metrics
           Padding(
             padding: EdgeInsets.all(16.r),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'AI Behavioral Summary:',
+                  'Overview Review',
                   style: GoogleFonts.outfit(
-                    fontSize: 13.sp,
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textSecondary,
+                    color: AppColors.selectedText,
                   ),
                 ),
                 SizedBox(height: 6.h),
                 Text(
-                  _latestReport!.summary,
+                  latestReport.summary,
                   style: GoogleFonts.outfit(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.selectedText,
-                    height: 1.4.h,
+                    fontSize: 13.sp,
+                    color: AppColors.textSecondary,
                   ),
                 ),
                 SizedBox(height: 16.h),
-                const Divider(),
-                SizedBox(height: 10.h),
-                // Stats Row
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildStatCol('Total Links', _latestReport!.links.length.toString(), AppColors.primary),
-                    _buildStatCol('Safe Links', safeCount.toString(), AppColors.success),
-                    _buildStatCol('Harmful Links', harmfulCount.toString(), AppColors.error),
+                    Expanded(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                        decoration: BoxDecoration(
+                          color: AppColors.greenWhite,
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              '$safeCount',
+                              style: GoogleFonts.outfit(
+                                fontSize: 20.sp,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.success,
+                              ),
+                            ),
+                            Text(
+                              'Safe Sites',
+                              style: GoogleFonts.outfit(
+                                fontSize: 11.sp,
+                                color: AppColors.success.withValues(alpha: 0.8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(vertical: 10.h),
+                        decoration: BoxDecoration(
+                          color: AppColors.redWhite,
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              '$harmfulCount',
+                              style: GoogleFonts.outfit(
+                                fontSize: 20.sp,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.error,
+                              ),
+                            ),
+                            Text(
+                              'Harmful Sites',
+                              style: GoogleFonts.outfit(
+                                fontSize: 11.sp,
+                                color: AppColors.error.withValues(alpha: 0.8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -448,154 +613,6 @@ class _ParentDashboardState extends State<ParentDashboard> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildStatCol(String title, String val, Color color) {
-    return Column(
-      children: [
-        Text(
-          val,
-          style: GoogleFonts.outfit(
-            fontSize: 24.sp,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        SizedBox(height: 2.h),
-        Text(
-          title,
-          style: GoogleFonts.outfit(
-            fontSize: 12.sp,
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLinksFeed() {
-    if (_visitedUrls.isEmpty) {
-      return Container(
-        height: 180.h,
-        alignment: Alignment.center,
-        child: Text(
-          'No activity recorded for this child.',
-          style: GoogleFonts.outfit(
-            color: AppColors.textDisabled,
-            fontSize: 14.sp,
-          ),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: _visitedUrls.length,
-      itemBuilder: (context, index) {
-        final url = _visitedUrls[index];
-        LinkAnalysis? analysis;
-
-        // Try to match the url with one of the analysed links in the report
-        if (_latestReport != null) {
-          final matches = _latestReport!.links.where((l) => l.url == url);
-          if (matches.isNotEmpty) {
-            analysis = matches.first;
-          }
-        }
-
-        final hasAnalysis = analysis != null;
-        final isHarmful = hasAnalysis ? analysis.isHarmful : (url.contains('gambling') || url.contains('violent') || url.contains('badsite'));
-        final labelColor = isHarmful ? AppColors.error : AppColors.success;
-        final labelBgColor = isHarmful ? AppColors.redWhite : AppColors.greenWhite;
-
-        return Card(
-          color: AppColors.surface,
-          margin: EdgeInsets.symmetric(vertical: 8.h),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.r),
-            side: BorderSide(color: AppColors.border.withValues(alpha: 0.3)),
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(12.r),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        url,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.outfit(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.selectedText,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 8.w),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                      decoration: BoxDecoration(
-                        color: labelBgColor,
-                        borderRadius: BorderRadius.circular(8.r),
-                        border: Border.all(color: labelColor.withValues(alpha: 0.3)),
-                      ),
-                      child: Text(
-                        hasAnalysis ? (isHarmful ? 'Harmful' : 'Safe') : 'Pending',
-                        style: GoogleFonts.outfit(
-                          fontSize: 10.sp,
-                          color: hasAnalysis ? labelColor : AppColors.textDisabled,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 6.h),
-                Row(
-                  children: [
-                    Icon(Icons.folder_open_rounded, size: 14.sp, color: AppColors.textDisabled),
-                    SizedBox(width: 4.w),
-                    Text(
-                      'Category: ${hasAnalysis ? analysis.category : "Unclassified"}',
-                      style: GoogleFonts.outfit(
-                        fontSize: 12.sp,
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-                if (hasAnalysis) ...[
-                  SizedBox(height: 8.h),
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(8.r),
-                    decoration: BoxDecoration(
-                      color: AppColors.backGround,
-                      borderRadius: BorderRadius.circular(8.r),
-                    ),
-                    child: Text(
-                      analysis.reason,
-                      style: GoogleFonts.outfit(
-                        fontSize: 12.sp,
-                        color: AppColors.selectedText,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

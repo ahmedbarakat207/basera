@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:basera/core/utils/child_history_service.dart';
 import 'package:basera/core/utils/groq_client.dart';
+import 'package:basera/core/services/basera_database.dart';
 
 class FirebaseBackendService {
   static final FirebaseBackendService instance = FirebaseBackendService._internal();
@@ -102,12 +103,29 @@ class FirebaseBackendService {
 
   // Sync Child Visited URL
   Future<void> syncUrlVisit(String url) async {
-    // Add locally
-    await ChildHistoryService.instance.addUrl(url);
+    bool isSynced = false;
 
     if (isFirebaseAvailable && currentUser != null) {
+      try {
+        final uid = currentUser!.uid;
+        // Append to visited_urls array in Firestore
+        await FirebaseFirestore.instance.collection('users').doc(uid).update({
+          'visited_urls': FieldValue.arrayUnion([url]),
+        });
+        isSynced = true;
+      } catch (e) {
+        debugPrint('Firebase Firestore upload failed: $e. Saved to local SQLite queue.');
+      }
+    }
+
+    // Save locally in SQLite Database
+    await BaseraDatabase.instance.insertUrl(url, isSynced: isSynced);
+  }
+
+  // Direct sync from local SQLite queue (used by background SyncService)
+  Future<void> syncUrlVisitDirect(String url) async {
+    if (isFirebaseAvailable && currentUser != null) {
       final uid = currentUser!.uid;
-      // Append to visited_urls array in Firestore
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
         'visited_urls': FieldValue.arrayUnion([url]),
       });

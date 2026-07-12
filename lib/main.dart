@@ -1,15 +1,32 @@
 import 'package:basera/core/routes_manger/route_generator.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:basera/core/utils/child_history_service.dart';
 import 'package:basera/core/services/firebase_backend_service.dart';
+import 'package:basera/core/services/basera_database.dart';
+import 'package:basera/core/services/sync_service.dart';
+import 'package:basera/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:basera/features/auth/presentation/bloc/auth_event.dart';
+import 'package:basera/features/child/presentation/bloc/child_bloc.dart';
+import 'package:basera/features/parent/presentation/bloc/parent_bloc.dart';
 import 'package:basera/features/auth/presentation/pages/sign_up_screen.dart';
 import 'package:basera/features/dashboard_wrapper_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize SQLite Database
+  try {
+    await BaseraDatabase.instance.database;
+  } catch (e) {
+    debugPrint('SQLite database initialization failed: $e');
+  }
+
+  // Start background connection monitoring & sync service
+  SyncService.instance.startListening();
   
   // Load local environment variables/secrets file
   try {
@@ -42,14 +59,27 @@ class BasseraApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(430, 932),
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (context, child) => MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: isLoggedIn ? const DashboardWrapperScreen() : const SignUpScreen(),
-        onGenerateRoute: RouteGenerator.getRoute,
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<AuthBloc>(
+          create: (context) => AuthBloc()..add(AuthCheckRequested()),
+        ),
+        BlocProvider<ChildBloc>(
+          create: (context) => ChildBloc(),
+        ),
+        BlocProvider<ParentBloc>(
+          create: (context) => ParentBloc(),
+        ),
+      ],
+      child: ScreenUtilInit(
+        designSize: const Size(430, 932),
+        minTextAdapt: true,
+        splitScreenMode: true,
+        builder: (context, child) => MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: isLoggedIn ? const DashboardWrapperScreen() : const SignUpScreen(),
+          onGenerateRoute: RouteGenerator.getRoute,
+        ),
       ),
     );
   }
