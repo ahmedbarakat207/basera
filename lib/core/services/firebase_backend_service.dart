@@ -294,8 +294,17 @@ class FirebaseBackendService {
 
     if (isFirebaseAvailable && currentUser != null) {
       try {
-        final uid = currentUser!.uid;
-        await _db.collection('users').doc(uid).update({
+        String targetUid = currentUser!.uid;
+        
+        // Single-device demo support: if logged in as a parent who has linked a child,
+        // write the simulated web visit to the first linked child's document.
+        final parentDoc = await _db.collection('users').doc(targetUid).get();
+        final linked = parentDoc.data()?['linked_children'] as List?;
+        if (linked != null && linked.isNotEmpty) {
+           targetUid = linked.first.toString();
+        }
+
+        await _db.collection('users').doc(targetUid).update({
           'visited_urls': FieldValue.arrayUnion([url]),
         });
         isSynced = true;
@@ -309,8 +318,14 @@ class FirebaseBackendService {
 
   Future<void> syncUrlVisitDirect(String url) async {
     if (isFirebaseAvailable && currentUser != null) {
-      final uid = currentUser!.uid;
-      await _db.collection('users').doc(uid).update({
+      String targetUid = currentUser!.uid;
+      final parentDoc = await _db.collection('users').doc(targetUid).get();
+      final linked = parentDoc.data()?['linked_children'] as List?;
+      if (linked != null && linked.isNotEmpty) {
+         targetUid = linked.first.toString();
+      }
+      
+      await _db.collection('users').doc(targetUid).update({
         'visited_urls': FieldValue.arrayUnion([url]),
       });
     }

@@ -66,6 +66,8 @@ class GroqClient {
                 'role': 'system',
                 'content': 'Analyze the list of URLs visited by a child. '
                     'Identify any harmful content (drugs, pornography, violence, weapons, gambling, hate speech). '
+                    'Pay extremely close attention to typos or variations of well-known adult/harmful domains (e.g., "ponrhub", "xnx", "redtube"). '
+                    'If a URL closely resembles a harmful site despite typos, you MUST flag it as harmful. '
                     'Return ONLY a JSON object matching this schema: '
                     '{"overallRiskScore": double (1-10 overall risk score), "summary": "1 sentence overall behavior review", "analyses": [{"url": "...", "isHarmful": boolean, "category": "...", "riskScore": integer (1-10 risk rating), "reason": "1 short phrase explanation"}]}. '
                     'Do not include markdown tags, code blocks, or extra text.'
