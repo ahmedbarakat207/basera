@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_accessibility_service/flutter_accessibility_service.dart';
 import 'package:flutter_accessibility_service/accessibility_event.dart';
+import 'package:flutter_accessibility_service/flutter_accessibility_service.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:basera/core/services/firebase_backend_service.dart';
 import 'package:basera/core/utils/child_history_service.dart';
 
@@ -35,8 +36,14 @@ class AccessibilityMonitoringService {
     return true;
   }
 
-  void startMonitoring() {
+  void startMonitoring() async {
     if (_subscription != null) return;
+
+    // Wake up the persistent background service (if not already running)
+    final service = FlutterBackgroundService();
+    if (!(await service.isRunning())) {
+      service.startService();
+    }
 
     _subscription = FlutterAccessibilityService.accessStream.listen((event) async {
       // Check if user is currently logged in as a child

@@ -10,6 +10,7 @@ import 'package:basera/core/services/basera_database.dart';
 import 'package:basera/core/services/sync_service.dart';
 import 'package:basera/core/services/firebase_messaging_service.dart';
 import 'package:basera/core/services/accessibility_monitoring_service.dart';
+import 'package:basera/core/services/background_runner.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_event.dart';
 import 'package:basera/features/child/presentation/bloc/child_bloc.dart';
@@ -42,6 +43,9 @@ void main() async {
     await Firebase.initializeApp();
     await FirebaseMessagingService.instance.init();
     await AccessibilityMonitoringService.instance.initialize();
+  
+    // Setup persistent background service for headless execution
+    await initializeBackgroundService();
   } catch (e) {
     debugPrint('Firebase initialization failed: $e. Using local storage fallback.');
   }
