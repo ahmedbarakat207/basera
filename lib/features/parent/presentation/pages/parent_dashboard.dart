@@ -340,7 +340,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
         }
       },
       builder: (context, state) {
-        final children = state is ParentLoaded ? state.children : [];
+        final children = state is ParentLoaded ? state.children : <Map<String, dynamic>>[];
         final selectedChildUid =
             state is ParentLoaded ? state.selectedChildUid : null;
         final visitedUrls =
