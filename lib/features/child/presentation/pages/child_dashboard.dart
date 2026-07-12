@@ -189,8 +189,10 @@ class _ChildDashboardState extends State<ChildDashboard> {
             icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
             tooltip: 'Switch to Parent Mode',
             onPressed: () async {
-              final navigator = Navigator.of(context);
-              navigator.pushReplacementNamed(Routes.mainRoute);
+              await ChildHistoryService.instance.setUserRole('parent');
+              if (context.mounted) {
+                Navigator.of(context).pushReplacementNamed(Routes.mainRoute);
+              }
             },
           ),
           IconButton(

@@ -11,6 +11,7 @@ import 'package:basera/core/resources/theme_cubit.dart';
 import 'package:basera/features/parent/presentation/bloc/parent_bloc.dart';
 import 'package:basera/features/parent/presentation/bloc/parent_event.dart';
 import 'package:basera/features/parent/presentation/bloc/parent_state.dart';
+import 'package:basera/core/utils/child_history_service.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:basera/features/auth/presentation/bloc/auth_event.dart';
 import 'package:basera/features/parent/presentation/widgets/analytics_charts.dart';
@@ -201,8 +202,11 @@ class _ParentDashboardState extends State<ParentDashboard> {
               IconButton(
                 icon: const Icon(Icons.swap_horiz_rounded, color: Colors.white),
                 tooltip: 'Switch to Child Mode',
-                onPressed: () {
-                  Navigator.pushReplacementNamed(context, Routes.mainRoute);
+                onPressed: () async {
+                  await ChildHistoryService.instance.setUserRole('child');
+                  if (context.mounted) {
+                    Navigator.pushReplacementNamed(context, Routes.mainRoute);
+                  }
                 },
               ),
               IconButton(
