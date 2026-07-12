@@ -198,27 +198,18 @@ class FirebaseBackendService {
       throw Exception('The account "$childEmail" is registered as a parent, not a child account.');
     }
 
-    // 3. Check not already linked to another parent
+    // 3. Check if already linked to another parent (Override for demo purposes)
     final existingParentUid = childData['parentUid'] as String?;
     if (existingParentUid != null && existingParentUid != parentUid) {
-      await _auth.signOut();
-      throw Exception('This child account is already linked to a different parent.');
+      // For this demo, we will just silently override the previous parent link 
+      // instead of throwing an error, so users don't get stuck.
+      // In production, we would require the previous parent to unlink first.
     }
 
     final childUid = childUser.uid;
     final childName = childData['name'] as String? ?? 'Child';
 
-    // 4. Sign child back out — we have what we need
-    await _auth.signOut();
-
-    // NOTE: After signOut the parent's Firebase Auth session is gone.
-    // We cannot silently re-sign-in the parent without their password.
-    // Solution: store the parent UID we captured before, write Firestore
-    // docs directly (Firestore rules should allow parent to write child docs
-    // if parentUid matches). For production, use a Cloud Function instead.
-    // For this demo we write directly before auth state settles.
-
-    // 5. Write bidirectional Firestore link
+    // 4. Write bidirectional Firestore link
     final batch = _db.batch();
 
     // Child doc: set parentUid
@@ -233,6 +224,11 @@ class FirebaseBackendService {
 
     await batch.commit();
 
+    // 5. Sign child back out now that we are done with Firestore
+    await _auth.signOut();
+
+    // NOTE: After signOut the parent's Firebase Auth session is gone.
+    // We cannot silently re-sign-in the parent without their password.
     // 6. Persist locally so parent stays logged in after app restart
     await ChildHistoryService.instance.setUserRole('parent');
     await ChildHistoryService.instance.setIsLoggedIn(true);
