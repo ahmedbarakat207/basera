@@ -278,9 +278,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                   itemBuilder: (context, index) {
                     final url = flaggedUrls[index];
                     return Card(
-                      color: true
-                          ? const Color(0xFF2D2D35)
-                          : const Color(0xFFFFF7ED),
+                      color: ColorManager.primary,
                       margin: EdgeInsets.symmetric(vertical: 6.h),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
@@ -454,7 +452,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // ── No Children Linked Banner ──────────────────────
-                        if (children.isEmpty) _buildNoChildrenBanner(true),
+                        if (children.isEmpty) _buildNoChildrenBanner(),
 
                         // ── Child Profile Selector ─────────────────────────
                         if (children.isNotEmpty) ...[
@@ -472,15 +470,15 @@ class _ParentDashboardState extends State<ParentDashboard> {
                           children: [
                             Expanded(
                               child: MainAppButton(
-  text: isAnalyzing
+                                text: isAnalyzing
                                     ? 'Analyzing with Iris AI...'
                                     : 'Analyze with Iris AI',
-  onTap: (isAnalyzing || allUrls.isEmpty)
-                                    ? null
-                                    : () => context
-                                        .read<ParentBloc>()
-                                        .add(RunAiAnalysis(urls: allUrls)) as void Function()?,
-),
+                                onTap: (isAnalyzing || allUrls.isEmpty)
+                                    ? () {}
+                                    : () {
+                                        context.read<ParentBloc>().add(RunAiAnalysis(urls: allUrls));
+                                      },
+                              ),
                             ),
                             if (allUrls.isNotEmpty) ...[
                               SizedBox(width: 12.w),
@@ -499,7 +497,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                         SizedBox(height: 24.h),
 
                         // ── Tabs ───────────────────────────────────────────
-                        _buildTabBar(true),
+                        _buildTabBar(),
                         SizedBox(height: 20.h),
 
                         // ── Tab Content ────────────────────────────────────
@@ -617,9 +615,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
             color: ColorManager.primary,
             borderRadius: BorderRadius.circular(12.r),
             border: Border.all(
-              color: true
-                  ? const Color(0xFF2D2D35)
-                  : ColorManager.grey.withValues(alpha: 0.5),
+              color: ColorManager.primary.withValues(alpha: 0.5),
             ),
           ),
           child: DropdownButtonHideUnderline(
@@ -743,7 +739,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
           backgroundColor:
               ColorManager.primary,
           borderBackgroundColor:
-              true ? const Color(0xFF2D2D35) : ColorManager.grey,
+              ColorManager.primary,
           onChanged: (val) =>
               context.read<ParentBloc>().add(FilterUrls(query: val)),
         ),
@@ -812,9 +808,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.r),
         side: BorderSide(
-          color: true
-              ? const Color(0xFF2D2D35)
-              : ColorManager.grey.withValues(alpha: 0.3),
+          color: ColorManager.primary.withValues(alpha: 0.3),
         ),
       ),
       child: Padding(
@@ -884,9 +878,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                 width: double.infinity,
                 padding: EdgeInsets.all(8.r),
                 decoration: BoxDecoration(
-                  color: true
-                      ? const Color(0xFF2D2D35)
-                      : ColorManager.primary,
+                  color: ColorManager.primary,
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Text(
@@ -915,9 +907,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
           color: ColorManager.primary,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
-            color: true
-                ? const Color(0xFF2D2D35)
-                : ColorManager.grey.withValues(alpha: 0.5),
+            color: ColorManager.primary.withValues(alpha: 0.5),
           ),
         ),
         child: Column(
@@ -956,9 +946,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
         color: ColorManager.primary,
         borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
-          color: true
-              ? const Color(0xFF2D2D35)
-              : ColorManager.grey.withValues(alpha: 0.5),
+          color: ColorManager.primary.withValues(alpha: 0.5),
         ),
       ),
       child: Column(

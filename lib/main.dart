@@ -39,6 +39,7 @@ void main() async {
 
   try {
     await Firebase.initializeApp();
+    await FirebaseMessagingService.instance.init();
   } catch (e) {
     debugPrint('Firebase initialization failed: $e. Using local storage fallback.');
   }
