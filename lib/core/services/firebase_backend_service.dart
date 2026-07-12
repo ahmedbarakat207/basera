@@ -32,6 +32,7 @@ class FirebaseBackendService {
   }) async {
     // Save locally first
     await ChildHistoryService.instance.setUserRole(role);
+    await ChildHistoryService.instance.setIsLoggedIn(true);
 
     if (isFirebaseAvailable) {
       final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -75,14 +76,17 @@ class FirebaseBackendService {
         if (doc.exists) {
           final role = doc.data()?['role'] as String? ?? 'parent';
           await ChildHistoryService.instance.setUserRole(role);
+          await ChildHistoryService.instance.setIsLoggedIn(true);
           return role;
         }
       }
+      await ChildHistoryService.instance.setIsLoggedIn(true);
       return 'parent';
     } else {
       // Mock login for offline testing: if email starts with child, assume child role
       final role = email.toLowerCase().contains('child') ? 'child' : 'parent';
       await ChildHistoryService.instance.setUserRole(role);
+      await ChildHistoryService.instance.setIsLoggedIn(true);
       debugPrint('Local-only Mode: Signed in as $role (mock)');
       return role;
     }
@@ -90,6 +94,7 @@ class FirebaseBackendService {
 
   // Sign Out
   Future<void> signOut() async {
+    await ChildHistoryService.instance.setIsLoggedIn(false);
     if (isFirebaseAvailable) {
       await FirebaseAuth.instance.signOut();
     }

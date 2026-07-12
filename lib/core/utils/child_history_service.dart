@@ -6,6 +6,7 @@ class ChildHistoryService {
   static const String _keyUrls = 'basera_visited_urls';
   static const String _keyReport = 'basera_safety_report';
   static const String _keyUserRole = 'basera_user_role';
+  static const String _keyIsLoggedIn = 'basera_is_logged_in';
 
   static final List<String> _defaultUrls = [
     'https://en.wikipedia.org/wiki/Flutter_(software)',
@@ -71,5 +72,15 @@ class ChildHistoryService {
   Future<void> setUserRole(String role) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyUserRole, role);
+  }
+
+  Future<bool> getIsLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyIsLoggedIn) ?? false;
+  }
+
+  Future<void> setIsLoggedIn(bool val) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyIsLoggedIn, val);
   }
 }

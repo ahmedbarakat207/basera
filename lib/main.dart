@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:basera/core/utils/child_history_service.dart';
+import 'package:basera/core/services/firebase_backend_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,11 +22,22 @@ void main() async {
   } catch (e) {
     debugPrint('Firebase initialization failed: $e. Using local storage fallback.');
   }
-  runApp(const BasseraApp());
+
+  // Determine initial login status
+  bool isLoggedIn = false;
+  try {
+    isLoggedIn = await ChildHistoryService.instance.getIsLoggedIn();
+    if (FirebaseBackendService.instance.isFirebaseAvailable) {
+      isLoggedIn = FirebaseBackendService.instance.currentUser != null;
+    }
+  } catch (_) {}
+
+  runApp(BasseraApp(isLoggedIn: isLoggedIn));
 }
 
 class BasseraApp extends StatelessWidget {
-  const BasseraApp({super.key});
+  final bool isLoggedIn;
+  const BasseraApp({super.key, this.isLoggedIn = false});
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +49,7 @@ class BasseraApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         home: child,
         onGenerateRoute: RouteGenerator.getRoute,
-        initialRoute: Routes.signUpRoute,
+        initialRoute: isLoggedIn ? Routes.mainRoute : Routes.signUpRoute,
       ),
     );
   }

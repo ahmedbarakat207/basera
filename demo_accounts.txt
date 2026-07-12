@@ -7,7 +7,7 @@ To demonstrate the AI child-safety link analysis, use the following credentials 
 -----------------------------------------
 1. PARENT ACCOUNT (Monitor Control)
 -----------------------------------------
-Email: parent@basera.com
+Email: parent@basera.com 
 Password: parentpassword123
 Role: Parent
 

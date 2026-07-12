@@ -259,7 +259,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
                       children: [
                         Expanded(
                           child: CustomButton(
-                            text: _isAnalyzing ? 'Analyzing...' : 'Analyze with Groq AI',
+                            text: _isAnalyzing ? 'Analyzing...' : 'Analyze with Iris AI',
                             onPressed: _isAnalyzing ? null : _runAiAnalysis,
                             isLoading: _isAnalyzing,
                             backgroundColor: AppColors.primary,
@@ -325,7 +325,7 @@ class _ParentDashboardState extends State<ParentDashboard> {
             ),
             SizedBox(height: 8.h),
             Text(
-              'Click "Analyze with Groq AI" below to evaluate your child\'s recent browsing history.',
+              'Click "Analyze with Iris AI" below to evaluate your child\'s recent browsing history.',
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(
                 fontSize: 13.sp,
